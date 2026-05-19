@@ -28,14 +28,24 @@ from outlook_mcp.graph.trimming import (
 )
 
 
-def _list_messages_query(*, limit: int):
+def _list_messages_query(*, limit: int, filter_expr: str | None = None):
     qp = FolderMessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters(
         top=limit,
         orderby=["receivedDateTime DESC"],
+        filter=filter_expr,
     )
     return RequestConfiguration[
         FolderMessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters
     ](query_parameters=qp)
+
+
+def _build_list_filter(*, unread_only: bool, filter: str | None) -> str | None:
+    parts: list[str] = []
+    if unread_only:
+        parts.append("isRead eq false")
+    if filter:
+        parts.append(f"({filter})")
+    return " and ".join(parts) if parts else None
 
 
 def _search_query(*, limit: int, query: str):
@@ -56,6 +66,8 @@ async def list_messages(
     limit: int = 25,
     page_token: str | None = None,
     include_raw: bool = False,
+    unread_only: bool = False,
+    filter: str | None = None,
 ) -> dict:
     """List messages from a mail folder, newest first.
 
@@ -66,18 +78,30 @@ async def list_messages(
         limit: 1-100. Default 25.
         page_token: Pass next_page_token from a previous result to continue.
         include_raw: Include the raw Graph payload under "raw" on each item.
+        unread_only: When True, only return messages where isRead is false.
+            Adds `isRead eq false` to the server-side $filter.
+        filter: Raw OData $filter expression applied server-side. Combined
+            with `unread_only` using `and`. Examples:
+            `from/emailAddress/address eq 'a@x.com'`,
+            `hasAttachments eq true`,
+            `contains(subject,'report')`,
+            `receivedDateTime ge 2026-05-01T00:00:00Z`.
+            Cannot be combined with $search — use `search_messages` for that.
 
     Returns:
         {"items": [trimmed_message, ...], "next_page_token": str | None}
     """
     limit = validate_limit(limit)
+    filter_expr = _build_list_filter(unread_only=unread_only, filter=filter)
     builder = graph.mailbox(mailbox).mail_folders.by_mail_folder_id(folder_id).messages
     try:
         if page_token is not None:
             url = decode_page_token(page_token)
             collection = await builder.with_url(url).get()
         else:
-            collection = await builder.get(request_configuration=_list_messages_query(limit=limit))
+            collection = await builder.get(
+                request_configuration=_list_messages_query(limit=limit, filter_expr=filter_expr)
+            )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -104,6 +128,12 @@ async def search_messages(
     The query is passed to Graph as-is — supply quoting yourself if you need
     a literal phrase (e.g. '"weekly report"') or KQL fielded predicates
     (e.g. 'from:alice subject:"report"').
+
+    Graph does not allow combining $search with $filter or $orderby, and KQL
+    has no `isread`/`unread`/`flag`/`in` predicates. To filter by isRead /
+    sender / date / attachments while keyword-matching, use `list_messages`
+    with `filter="contains(subject,'…')"` (or `contains(body/content,'…')`)
+    instead — that path supports the full $filter grammar.
 
     Args:
         query: Graph $search expression. Plain tokens match across common
@@ -218,10 +248,13 @@ def register(mcp, *, graph) -> None:
         limit: int = 25,
         page_token: str | None = None,
         include_raw: bool = False,
+        unread_only: bool = False,
+        filter: str | None = None,
     ):
         return await list_messages(
             graph=graph, folder_id=folder_id, mailbox=mailbox,
             limit=limit, page_token=page_token, include_raw=include_raw,
+            unread_only=unread_only, filter=filter,
         )
 
     @mcp.tool(name="search_messages", description=search_messages.__doc__ or "")

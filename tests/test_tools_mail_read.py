@@ -82,6 +82,56 @@ async def test_list_messages_rejects_bad_limit():
         await mail_read.list_messages(graph=graph, limit=200)
 
 
+def _list_messages_mock_setup():
+    graph = MagicMock()
+    mb = MagicMock()
+    folder = MagicMock()
+    folder.messages.get = AsyncMock(return_value=_fake_collection([_fake_message()]))
+    mb.mail_folders.by_mail_folder_id = MagicMock(return_value=folder)
+    graph.mailbox = MagicMock(return_value=mb)
+    return graph, folder
+
+
+def _captured_filter(folder):
+    rc = folder.messages.get.await_args.kwargs["request_configuration"]
+    return getattr(rc.query_parameters, "filter", None)
+
+
+@pytest.mark.asyncio
+async def test_list_messages_default_passes_no_filter():
+    graph, folder = _list_messages_mock_setup()
+    await mail_read.list_messages(graph=graph)
+    assert _captured_filter(folder) is None
+
+
+@pytest.mark.asyncio
+async def test_list_messages_unread_only_sets_isread_filter():
+    graph, folder = _list_messages_mock_setup()
+    await mail_read.list_messages(graph=graph, unread_only=True)
+    assert _captured_filter(folder) == "isRead eq false"
+
+
+@pytest.mark.asyncio
+async def test_list_messages_raw_filter_passes_through():
+    graph, folder = _list_messages_mock_setup()
+    await mail_read.list_messages(
+        graph=graph, filter="from/emailAddress/address eq 'a@x.com'"
+    )
+    assert _captured_filter(folder) == "(from/emailAddress/address eq 'a@x.com')"
+
+
+@pytest.mark.asyncio
+async def test_list_messages_combines_unread_and_filter_with_and():
+    graph, folder = _list_messages_mock_setup()
+    await mail_read.list_messages(
+        graph=graph, unread_only=True, filter="contains(subject,'report')"
+    )
+    assert (
+        _captured_filter(folder)
+        == "isRead eq false and (contains(subject,'report'))"
+    )
+
+
 @pytest.mark.asyncio
 async def test_search_messages_calls_root_messages_with_search_param():
     graph = MagicMock()
