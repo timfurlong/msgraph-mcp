@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from kiota_abstractions.base_request_configuration import RequestConfiguration
 from msgraph.generated.users.item.mail_folders.item.messages.messages_request_builder import (
     MessagesRequestBuilder as FolderMessagesRequestBuilder,
 )
@@ -32,21 +33,19 @@ def _list_messages_query(*, limit: int):
         top=limit,
         orderby=["receivedDateTime DESC"],
     )
-    rc = FolderMessagesRequestBuilder.MessagesRequestBuilderGetRequestConfiguration(
-        query_parameters=qp
-    )
-    return rc
+    return RequestConfiguration[
+        FolderMessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters
+    ](query_parameters=qp)
 
 
 def _search_query(*, limit: int, query: str):
     qp = MessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters(
         top=limit,
-        search=f'"{query}"',
+        search=query,
     )
-    rc = MessagesRequestBuilder.MessagesRequestBuilderGetRequestConfiguration(
-        query_parameters=qp
-    )
-    return rc
+    return RequestConfiguration[
+        MessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters
+    ](query_parameters=qp)
 
 
 async def list_messages(
@@ -102,8 +101,14 @@ async def search_messages(
 ) -> dict:
     """Search messages across all folders using Graph $search.
 
+    The query is passed to Graph as-is — supply quoting yourself if you need
+    a literal phrase (e.g. '"weekly report"') or KQL fielded predicates
+    (e.g. 'from:alice subject:"report"').
+
     Args:
-        query: KQL-style search string (e.g. 'from:alice subject:"report"').
+        query: Graph $search expression. Plain tokens match across common
+            mail fields; quoted phrases match literally; KQL `field:value`
+            forms target specific fields.
         mailbox: Optional mailbox.
         limit: 1-100.
         page_token: Continuation token.

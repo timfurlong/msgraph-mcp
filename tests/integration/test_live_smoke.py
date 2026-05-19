@@ -82,9 +82,10 @@ async def test_event_create_get_delete_roundtrip(graph):
 @pytest.mark.asyncio
 async def test_send_to_self_search_and_delete(graph):
     me = await util_tools.whoami(graph=graph)
-    # search_messages wraps the query in outer double quotes, so avoid inner
-    # quotes/KQL keywords. A unique token in the subject is enough to find the
-    # message via plain $search.
+    # search_messages passes `query` straight to Graph $search. Wrap the
+    # unique token in double quotes so Graph treats it as a literal phrase
+    # rather than KQL (a bare alphanumeric token with embedded digits is
+    # invalid KQL syntax).
     token = f"MCPSMOKE{int(time.time())}"
     subject = f"Outlook MCP smoke msg {token}"
     sent = await mail_write.send_message(
@@ -97,7 +98,9 @@ async def test_send_to_self_search_and_delete(graph):
     # Allow Graph indexing latency.
     found = None
     for _ in range(10):
-        result = await mail_read.search_messages(graph=graph, query=token, limit=5)
+        result = await mail_read.search_messages(
+            graph=graph, query=f'"{token}"', limit=5
+        )
         if result["items"]:
             found = result["items"][0]
             break

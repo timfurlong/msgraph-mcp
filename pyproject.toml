@@ -34,3 +34,13 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 # Integration tests are gated by tests/conftest.py — they skip unless
 # OUTLOOK_MCP_INTEGRATION=1 is set in the environment.
+#
+# msgraph-sdk and kiota_abstractions emit DeprecationWarnings on import for
+# nested *RequestConfiguration / GetQueryParameters classes whose generated
+# bodies are scheduled for removal. Our code already uses the recommended
+# generic RequestConfiguration[...]; these warnings come from the SDK module
+# bodies themselves and fire regardless of how we consume them.
+filterwarnings = [
+    "ignore:.*GetQueryParameters is deprecated.*:DeprecationWarning:kiota_abstractions",
+    "ignore:.*This class is deprecated.*:DeprecationWarning:msgraph.generated",
+]

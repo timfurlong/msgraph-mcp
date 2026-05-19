@@ -51,7 +51,7 @@ claude mcp add outlook -- uv --directory "$(pwd)" run outlook-mcp
 
 ## Entra setup
 
-The app registration ("Outlook MCP" in the Sentasity tenant) requires:
+The app registration (e.g. "Outlook MCP") requires:
 
 - **Account type:** single tenant
 - **Redirect URI (public client):** `https://login.microsoftonline.com/common/oauth2/nativeclient`
@@ -115,6 +115,7 @@ uv run ruff check .
 | `NotAuthenticatedError: Not authenticated. Run \`outlook-mcp-login\`...` | Run `uv run outlook-mcp-login`. |
 | `ConfigError: Missing required env var: OUTLOOK_MCP_CLIENT_ID` | Set the var in `.env` or in your MCP host's env config. |
 | `Graph API 403: ErrorAccessDenied — ...` | Permission mismatch on the Entra app. Verify the delegated permissions list above and re-consent. |
+| `Graph API 400: BadRequest — Syntax error: character ... is not valid at position N` from `search_messages` | The query is passed to Graph's `$search` as-is. Wrap literal/multi-character tokens in double quotes (e.g. `"weekly report"`), or use KQL fielded forms (e.g. `from:alice subject:"report"`). Bare alphanumeric strings with embedded digits are invalid KQL. |
 | Server boots but tools 404 in the host | Confirm the host is launching `uv run outlook-mcp` with the right working directory. |
 
 ---

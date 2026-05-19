@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Literal
 
+from kiota_abstractions.base_request_configuration import RequestConfiguration
 from msgraph.generated.models.attendee import Attendee
 from msgraph.generated.models.attendee_base import AttendeeBase
 from msgraph.generated.models.attendee_type import AttendeeType
@@ -77,9 +78,9 @@ def _calendar_view_query(*, start_datetime: str, end_datetime: str, limit: int):
         top=limit,
         orderby=["start/dateTime"],
     )
-    return CalendarViewRequestBuilder.CalendarViewRequestBuilderGetRequestConfiguration(
-        query_parameters=qp
-    )
+    return RequestConfiguration[
+        CalendarViewRequestBuilder.CalendarViewRequestBuilderGetQueryParameters
+    ](query_parameters=qp)
 
 
 async def list_events(

@@ -100,7 +100,7 @@ async def test_search_messages_calls_root_messages_with_search_param():
     # Search value should appear in the query parameters
     qp = getattr(rc, "query_parameters", None)
     assert qp is not None
-    assert getattr(qp, "search", None) == '"from:alice"'
+    assert getattr(qp, "search", None) == "from:alice"
     assert result["items"][0]["id"] == "s1"
 
 
