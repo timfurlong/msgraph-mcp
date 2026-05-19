@@ -4,25 +4,8 @@ from __future__ import annotations
 
 from outlook_mcp.auth.token import NotAuthenticatedError
 from outlook_mcp.graph.errors import map_kiota_error
+from outlook_mcp.graph.serialize import user_to_dict
 from outlook_mcp.graph.trimming import trim_user
-
-
-def _user_to_dict(user) -> dict:
-    """Build a plain dict from an msgraph User model.
-
-    We pull only the attrs we trim. additional_data is included so
-    include_raw=True returns the full payload kiota deserialized.
-    """
-    base = {
-        "id": getattr(user, "id", None),
-        "displayName": getattr(user, "display_name", None),
-        "userPrincipalName": getattr(user, "user_principal_name", None),
-        "mail": getattr(user, "mail", None),
-        "jobTitle": getattr(user, "job_title", None),
-    }
-    # additional_data is whatever Graph returned that the SDK didn't model.
-    extras = getattr(user, "additional_data", {}) or {}
-    return {**extras, **base}
 
 
 async def whoami(*, graph, include_raw: bool = False) -> dict:
@@ -43,7 +26,7 @@ async def whoami(*, graph, include_raw: bool = False) -> dict:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    return trim_user(_user_to_dict(user), include_raw=include_raw)
+    return trim_user(user_to_dict(user), include_raw=include_raw)
 
 
 def register(mcp, *, graph) -> None:
