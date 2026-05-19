@@ -1,0 +1,25 @@
+{
+  "id": "AAMkAGI-evt-id",
+  "subject": "Standup",
+  "organizer": {"emailAddress": {"name": "Alice", "address": "alice@example.com"}},
+  "start": {"dateTime": "2026-05-19T15:00:00", "timeZone": "America/Los_Angeles"},
+  "end": {"dateTime": "2026-05-19T15:30:00", "timeZone": "America/Los_Angeles"},
+  "location": {"displayName": "Zoom"},
+  "isAllDay": false,
+  "isCancelled": false,
+  "isOnlineMeeting": true,
+  "onlineMeeting": {"joinUrl": "https://zoom.us/j/123"},
+  "attendees": [
+    {
+      "emailAddress": {"name": "Bob", "address": "bob@example.com"},
+      "type": "required",
+      "status": {"response": "accepted"}
+    }
+  ],
+  "bodyPreview": "Daily standup",
+  "body": {"contentType": "html", "content": "<p>Daily standup</p>"},
+  "showAs": "busy",
+  "sensitivity": "normal",
+  "recurrence": null,
+  "webLink": "https://outlook.office.com/owa/?ItemID=evt"
+}
