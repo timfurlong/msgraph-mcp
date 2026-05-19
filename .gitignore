@@ -24,3 +24,5 @@ docs/plans/
 .vscode/
 .idea/
 .DS_Store
+
+.claude/
