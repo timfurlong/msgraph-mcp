@@ -2,6 +2,8 @@
 name = "outlook-mcp"
 version = "0.1.0"
 description = "MCP server for Microsoft Outlook mail and calendar via msgraph-sdk"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "mcp>=1.0",
