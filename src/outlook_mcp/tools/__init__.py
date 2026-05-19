@@ -6,7 +6,7 @@ exposes a register(mcp, *, graph) function so we can keep modules small.
 
 from __future__ import annotations
 
-from outlook_mcp.tools import mail_actions, mail_folders, mail_read, mail_write, util
+from outlook_mcp.tools import calendar, mail_actions, mail_folders, mail_read, mail_write, util
 
 
 def register_all(mcp, *, graph) -> None:
@@ -15,3 +15,4 @@ def register_all(mcp, *, graph) -> None:
     mail_write.register(mcp, graph=graph)
     mail_folders.register(mcp, graph=graph)
     mail_actions.register(mcp, graph=graph)
+    calendar.register(mcp, graph=graph)

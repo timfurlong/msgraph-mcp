@@ -32,5 +32,5 @@ dev-dependencies = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-# Integration tests are skipped unless OUTLOOK_MCP_INTEGRATION=1
-addopts = "--ignore=tests/integration"
+# Integration tests are gated by tests/conftest.py — they skip unless
+# OUTLOOK_MCP_INTEGRATION=1 is set in the environment.
