@@ -26,3 +26,6 @@ docs/plans/
 .DS_Store
 
 .claude/
+
+# Brainstorming visual companion artifacts
+.superpowers/
