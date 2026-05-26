@@ -22,6 +22,7 @@ SCOPES: list[str] = [
     "Mail.Send",
     "Calendars.ReadWrite",
     "Calendars.ReadWrite.Shared",
+    "MailboxSettings.ReadWrite",
     "User.Read",
 ]
 

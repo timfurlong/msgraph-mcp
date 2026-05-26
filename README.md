@@ -4,16 +4,17 @@ A Model Context Protocol (MCP) server that exposes Microsoft Outlook **mail** an
 
 ## What it does
 
-29 workflow-oriented tools covering the common mail and calendar operations:
+35 workflow-oriented tools covering the common mail and calendar operations:
 
-| Group | Tools |
-|---|---|
-| Util | `whoami` |
-| Mail — read | `list_messages`, `search_messages`, `get_message`, `list_attachments`, `download_attachment` |
-| Mail — write | `send_message`, `create_draft`, `reply_message`, `reply_all_message`, `forward_message`, `update_message`, `delete_message` |
-| Mail — folders | `list_folders`, `move_message` |
-| Mail — actions | `archive_message`, `mark_read`, `mark_unread`, `flag_message`, `unflag_message` |
-| Calendar | `list_calendars`, `list_events`, `get_event`, `create_event`, `update_event`, `delete_event`, `cancel_event`, `respond_to_event`, `find_meeting_times` |
+| Group          | Tools                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Util           | `whoami`                                                                                                                                               |
+| Mail — read    | `list_messages`, `search_messages`, `get_message`, `list_attachments`, `download_attachment`                                                           |
+| Mail — write   | `send_message`, `create_draft`, `reply_message`, `reply_all_message`, `forward_message`, `update_message`, `delete_message`                            |
+| Mail — folders | `list_folders`, `create_folder`, `delete_folder`, `move_message`                                                                                       |
+| Mail — actions | `archive_message`, `mark_read`, `mark_unread`, `flag_message`, `unflag_message`                                                                        |
+| Mail — rules   | `list_rules`, `get_rule`, `create_rule`, `delete_rule`                                                                                                 |
+| Calendar       | `list_calendars`, `list_events`, `get_event`, `create_event`, `update_event`, `delete_event`, `cancel_event`, `respond_to_event`, `find_meeting_times` |
 
 Every tool that touches a mailbox or calendar accepts an optional `mailbox` argument (email or user ID) to target shared mailboxes/calendars. Omit it to use the signed-in user's own mailbox.
 
@@ -59,20 +60,23 @@ The app registration (e.g. "Outlook MCP") requires:
   - `Mail.ReadWrite`
   - `Mail.ReadWrite.Shared`
   - `Mail.Send`
+  - `MailboxSettings.ReadWrite`
   - `Calendars.ReadWrite`
   - `Calendars.ReadWrite.Shared`
   - `User.Read`
 - Admin consent for the Shared permissions if your tenant requires it.
 
+> If you've already signed in before `MailboxSettings.ReadWrite` was added to the scope list, re-run `uv run outlook-mcp-login` so the cached token picks up the new scope. Without it, `create_rule` and `delete_rule` will fail with a consent error.
+
 The CLI uses public-client device code flow — **no client secret** is needed or stored.
 
 ## Environment variables
 
-| Var | Required | Default | Purpose |
-|---|---|---|---|
-| `OUTLOOK_MCP_CLIENT_ID` | yes | — | Entra (Azure AD) app client ID |
-| `OUTLOOK_MCP_TENANT_ID` | yes | — | Tenant ID (single-tenant authority) |
-| `OUTLOOK_MCP_TOKEN_CACHE_PATH` | no | `~/.outlook-mcp/token_cache.bin` | Override token cache file location |
+| Var                            | Required | Default                          | Purpose                             |
+| ------------------------------ | -------- | -------------------------------- | ----------------------------------- |
+| `OUTLOOK_MCP_CLIENT_ID`        | yes      | —                                | Entra (Azure AD) app client ID      |
+| `OUTLOOK_MCP_TENANT_ID`        | yes      | —                                | Tenant ID (single-tenant authority) |
+| `OUTLOOK_MCP_TOKEN_CACHE_PATH` | no       | `~/.outlook-mcp/token_cache.bin` | Override token cache file location  |
 
 Process env wins; `.env` at the repo root is loaded as a dev fallback.
 
@@ -83,14 +87,36 @@ Process env wins; `.env` at the repo root is loaded as a dev fallback.
 - To **revoke** access: sign in to https://account.microsoft.com or your org's identity portal, revoke the "Outlook MCP" app, then `rm ~/.outlook-mcp/token_cache.bin`.
 - To **switch accounts**: `rm ~/.outlook-mcp/token_cache.bin` and re-run `outlook-mcp-login`.
 
+## Recipes
+
+### Route a sender into a new folder
+
+```
+# 1. Make a folder for the notifications.
+create_folder(display_name="Notifications")
+# -> {"id": "AAMkFolderId", "display_name": "Notifications", ...}
+
+# 2. Create an inbox rule that moves matching senders into it.
+create_rule(
+    display_name="Notifications",
+    sender_contains=["example.com"],
+    move_to_folder="AAMkFolderId",
+    stop_processing_rules=True,
+)
+```
+
+Conditions inside one rule are AND-ed by Outlook. Pass a list to a single condition (e.g. `sender_contains=["example.com", "monitor.io"]`) for OR within that condition. Rules only run against the inbox — Graph's `messageRules` endpoint is hardcoded there and does not support per-folder rules.
+
+`create_rule` requires at least one condition and one action. Update isn't supported on purpose; delete + recreate.
+
 ## Future work
 
-Not implemented in v1; reasonable v2 additions:
+Not implemented; reasonable additions:
 
-- **Rules and inbox automation** (`messageRules`). Useful for codifying inbox triage, less common in agent workflows.
 - **Graph `$batch` requests.** Performance optimization that bundles multiple Graph calls into one HTTP round-trip; would speed up multi-step workflows but adds complexity. Defer until profiling proves the win.
+- **`update_rule`.** Graph's PATCH on `messageRules` requires sending the full nested `conditions`/`actions` objects, which is fragile; today the workflow is delete + recreate.
 
-Other known gaps (intentionally out of scope for v1): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote/Teams, multi-account switching, change-notification subscriptions.
+Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote/Teams, multi-account switching, change-notification subscriptions, folder rename, force-delete of non-empty folders.
 
 ## Development
 
@@ -110,13 +136,13 @@ uv run ruff check .
 
 ## Troubleshooting
 
-| Symptom | Fix |
-|---|---|
-| `NotAuthenticatedError: Not authenticated. Run \`outlook-mcp-login\`...` | Run `uv run outlook-mcp-login`. |
-| `ConfigError: Missing required env var: OUTLOOK_MCP_CLIENT_ID` | Set the var in `.env` or in your MCP host's env config. |
-| `Graph API 403: ErrorAccessDenied — ...` | Permission mismatch on the Entra app. Verify the delegated permissions list above and re-consent. |
+| Symptom                                                                                                     | Fix                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NotAuthenticatedError: Not authenticated. Run \`outlook-mcp-login\`...`                                    | Run `uv run outlook-mcp-login`.                                                                                                                                                                                                                               |
+| `ConfigError: Missing required env var: OUTLOOK_MCP_CLIENT_ID`                                              | Set the var in `.env` or in your MCP host's env config.                                                                                                                                                                                                       |
+| `Graph API 403: ErrorAccessDenied — ...`                                                                    | Permission mismatch on the Entra app. Verify the delegated permissions list above and re-consent.                                                                                                                                                             |
 | `Graph API 400: BadRequest — Syntax error: character ... is not valid at position N` from `search_messages` | The query is passed to Graph's `$search` as-is. Wrap literal/multi-character tokens in double quotes (e.g. `"weekly report"`), or use KQL fielded forms (e.g. `from:alice subject:"report"`). Bare alphanumeric strings with embedded digits are invalid KQL. |
-| Server boots but tools 404 in the host | Confirm the host is launching `uv run outlook-mcp` with the right working directory. |
+| Server boots but tools 404 in the host                                                                      | Confirm the host is launching `uv run outlook-mcp` with the right working directory.                                                                                                                                                                          |
 
 ---
 

@@ -100,3 +100,74 @@ def test_attachment_to_dict_with_content_bytes():
     d = serialize.attachment_to_dict(a, include_content=True)
     # content_bytes are base64-encoded on the wire; we store them as a str
     assert d["contentBytes"] is not None
+
+
+def test_message_rule_predicates_to_dict_minimal():
+    pred = SimpleNamespace(
+        body_contains=None,
+        body_or_subject_contains=None,
+        categories=None,
+        from_addresses=None,
+        has_attachments=None,
+        header_contains=None,
+        sender_contains=["example.com"],
+        subject_contains=["Security Scan"],
+        sent_to_addresses=None,
+        sent_to_me=None,
+        sent_only_to_me=None,
+        importance=None,
+        message_action_flag=None,
+        sensitivity=None,
+        within_size_range=None,
+        additional_data={},
+    )
+    d = serialize.message_rule_predicates_to_dict(pred)
+    assert d["senderContains"] == ["example.com"]
+    assert d["subjectContains"] == ["Security Scan"]
+    assert d["bodyContains"] is None
+    assert d["fromAddresses"] == []
+
+
+def test_message_rule_actions_to_dict_minimal():
+    actions = SimpleNamespace(
+        assign_categories=None,
+        copy_to_folder=None,
+        delete=None,
+        forward_as_attachment_to=None,
+        forward_to=None,
+        mark_as_read=True,
+        mark_importance=None,
+        move_to_folder="AAMkFolderId",
+        permanent_delete=None,
+        redirect_to=None,
+        stop_processing_rules=True,
+        additional_data={},
+    )
+    d = serialize.message_rule_actions_to_dict(actions)
+    assert d["moveToFolder"] == "AAMkFolderId"
+    assert d["markAsRead"] is True
+    assert d["stopProcessingRules"] is True
+    assert d["delete"] is None
+    assert d["forwardTo"] == []
+
+
+def test_message_rule_to_dict_minimal():
+    rule = SimpleNamespace(
+        id="rule-1",
+        display_name="Test notifications",
+        sequence=1,
+        is_enabled=True,
+        has_error=False,
+        is_read_only=False,
+        conditions=None,
+        exceptions=None,
+        actions=None,
+        additional_data={},
+    )
+    d = serialize.message_rule_to_dict(rule)
+    assert d["id"] == "rule-1"
+    assert d["displayName"] == "Test notifications"
+    assert d["sequence"] == 1
+    assert d["isEnabled"] is True
+    assert d["conditions"] is None
+    assert d["actions"] is None

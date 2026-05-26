@@ -37,6 +37,7 @@ def test_scopes_match_spec():
         "Mail.Send",
         "Calendars.ReadWrite",
         "Calendars.ReadWrite.Shared",
+        "MailboxSettings.ReadWrite",
         "User.Read",
     ]
 

@@ -176,3 +176,59 @@ def event_to_dict(evt: Any) -> dict:
         "webLink": getattr(evt, "web_link", None),
     }
     return {**_additional(evt), **base}
+
+
+def message_rule_predicates_to_dict(pred: Any) -> dict | None:
+    if pred is None:
+        return None
+    base = {
+        "bodyContains": list(getattr(pred, "body_contains", None) or []) or None,
+        "bodyOrSubjectContains": list(getattr(pred, "body_or_subject_contains", None) or []) or None,
+        "categories": list(getattr(pred, "categories", None) or []) or None,
+        "fromAddresses": _recipients(getattr(pred, "from_addresses", None)),
+        "hasAttachments": getattr(pred, "has_attachments", None),
+        "headerContains": list(getattr(pred, "header_contains", None) or []) or None,
+        "senderContains": list(getattr(pred, "sender_contains", None) or []) or None,
+        "subjectContains": list(getattr(pred, "subject_contains", None) or []) or None,
+        "sentToAddresses": _recipients(getattr(pred, "sent_to_addresses", None)),
+        "sentToMe": getattr(pred, "sent_to_me", None),
+        "sentOnlyToMe": getattr(pred, "sent_only_to_me", None),
+        "importance": _enum_value(getattr(pred, "importance", None)),
+        "messageActionFlag": _enum_value(getattr(pred, "message_action_flag", None)),
+        "sensitivity": _enum_value(getattr(pred, "sensitivity", None)),
+    }
+    return {**_additional(pred), **base}
+
+
+def message_rule_actions_to_dict(actions: Any) -> dict | None:
+    if actions is None:
+        return None
+    base = {
+        "assignCategories": list(getattr(actions, "assign_categories", None) or []) or None,
+        "copyToFolder": getattr(actions, "copy_to_folder", None),
+        "delete": getattr(actions, "delete", None),
+        "forwardAsAttachmentTo": _recipients(getattr(actions, "forward_as_attachment_to", None)),
+        "forwardTo": _recipients(getattr(actions, "forward_to", None)),
+        "markAsRead": getattr(actions, "mark_as_read", None),
+        "markImportance": _enum_value(getattr(actions, "mark_importance", None)),
+        "moveToFolder": getattr(actions, "move_to_folder", None),
+        "permanentDelete": getattr(actions, "permanent_delete", None),
+        "redirectTo": _recipients(getattr(actions, "redirect_to", None)),
+        "stopProcessingRules": getattr(actions, "stop_processing_rules", None),
+    }
+    return {**_additional(actions), **base}
+
+
+def message_rule_to_dict(rule: Any) -> dict:
+    base = {
+        "id": getattr(rule, "id", None),
+        "displayName": getattr(rule, "display_name", None),
+        "sequence": getattr(rule, "sequence", None),
+        "isEnabled": bool(getattr(rule, "is_enabled", False)),
+        "hasError": bool(getattr(rule, "has_error", False)),
+        "isReadOnly": bool(getattr(rule, "is_read_only", False)),
+        "conditions": message_rule_predicates_to_dict(getattr(rule, "conditions", None)),
+        "exceptions": message_rule_predicates_to_dict(getattr(rule, "exceptions", None)),
+        "actions": message_rule_actions_to_dict(getattr(rule, "actions", None)),
+    }
+    return {**_additional(rule), **base}

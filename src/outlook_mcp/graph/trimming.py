@@ -153,3 +153,46 @@ def trim_calendar(raw: dict, *, include_raw: bool) -> dict:
         "is_default_calendar": bool(raw.get("isDefaultCalendar")),
     }
     return _attach_raw(trimmed, raw, include_raw)
+
+
+def _trim_rule_conditions(raw: dict | None) -> dict | None:
+    if not raw:
+        return None
+    return {
+        "sender_contains": raw.get("senderContains"),
+        "subject_contains": raw.get("subjectContains"),
+        "body_contains": raw.get("bodyContains"),
+        "body_or_subject_contains": raw.get("bodyOrSubjectContains"),
+        "from_addresses": _emails(raw.get("fromAddresses")),
+        "has_attachments": raw.get("hasAttachments"),
+        "categories": raw.get("categories"),
+    }
+
+
+def _trim_rule_actions(raw: dict | None) -> dict | None:
+    if not raw:
+        return None
+    return {
+        "move_to_folder": raw.get("moveToFolder"),
+        "copy_to_folder": raw.get("copyToFolder"),
+        "delete": raw.get("delete"),
+        "mark_as_read": raw.get("markAsRead"),
+        "mark_importance": raw.get("markImportance"),
+        "assign_categories": raw.get("assignCategories"),
+        "forward_to": _emails(raw.get("forwardTo")),
+        "stop_processing_rules": raw.get("stopProcessingRules"),
+    }
+
+
+def trim_message_rule(raw: dict, *, include_raw: bool) -> dict:
+    trimmed = {
+        "id": raw.get("id"),
+        "display_name": raw.get("displayName"),
+        "sequence": raw.get("sequence"),
+        "is_enabled": bool(raw.get("isEnabled")),
+        "has_error": bool(raw.get("hasError")),
+        "is_read_only": bool(raw.get("isReadOnly")),
+        "conditions": _trim_rule_conditions(raw.get("conditions")),
+        "actions": _trim_rule_actions(raw.get("actions")),
+    }
+    return _attach_raw(trimmed, raw, include_raw)
