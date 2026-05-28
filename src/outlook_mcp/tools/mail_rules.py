@@ -248,6 +248,111 @@ async def create_rule(
     return trim_message_rule(message_rule_to_dict(created), include_raw=include_raw)
 
 
+async def update_rule(
+    *,
+    graph,
+    rule_id: str,
+    display_name: str | None = None,
+    is_enabled: bool | None = None,
+    sequence: int | None = None,
+    sender_contains: list[str] | None = None,
+    subject_contains: list[str] | None = None,
+    body_contains: list[str] | None = None,
+    body_or_subject_contains: list[str] | None = None,
+    from_addresses: list[str] | None = None,
+    has_attachments: bool | None = None,
+    move_to_folder: str | None = None,
+    mark_as_read: bool | None = None,
+    delete: bool | None = None,
+    stop_processing_rules: bool | None = None,
+    mailbox: str | None = None,
+    include_raw: bool = False,
+) -> dict:
+    """Patch fields of an existing inbox mail rule. Pass None to leave a
+    field unchanged.
+
+    Replacement semantics for nested blocks:
+        Graph PATCH on messageRules replaces the entire ``conditions`` or
+        ``actions`` block when you send it. If you pass ANY condition arg
+        (sender_contains, subject_contains, body_contains,
+        body_or_subject_contains, from_addresses, has_attachments) the
+        rule's conditions are rebuilt from ONLY the args you pass — any
+        existing conditions you don't re-specify are dropped. Same for
+        actions (move_to_folder, mark_as_read, delete,
+        stop_processing_rules). If you don't pass any condition or
+        action args, the existing blocks are preserved.
+
+        If you want to add to a block without losing the rest, call
+        ``get_rule`` first and re-supply the existing values.
+
+    Args:
+        rule_id: Graph rule id. Required.
+        display_name: New display name. None = unchanged.
+        is_enabled: Enable/disable the rule. None = unchanged.
+        sequence: New order (lower runs first). None = unchanged.
+        sender_contains / subject_contains / body_contains /
+            body_or_subject_contains / from_addresses / has_attachments:
+            Passing any of these REPLACES the conditions block.
+        move_to_folder / mark_as_read / delete / stop_processing_rules:
+            Passing any of these REPLACES the actions block.
+        mailbox: Optional mailbox for shared mailboxes.
+        include_raw: Include the raw Graph payload.
+
+    Returns:
+        The trimmed updated rule.
+    """
+    if not rule_id:
+        raise GraphValidationError("`rule_id` is required")
+
+    new_conditions = _build_predicates(
+        sender_contains=sender_contains,
+        subject_contains=subject_contains,
+        body_contains=body_contains,
+        body_or_subject_contains=body_or_subject_contains,
+        from_addresses=from_addresses,
+        has_attachments=has_attachments,
+    )
+    new_actions = _build_actions(
+        move_to_folder=move_to_folder,
+        mark_as_read=mark_as_read,
+        delete=delete,
+        stop_processing_rules=stop_processing_rules,
+    )
+
+    has_top_level = (
+        display_name is not None or is_enabled is not None or sequence is not None
+    )
+    if not has_top_level and new_conditions is None and new_actions is None:
+        raise GraphValidationError(
+            "At least one field must be updated "
+            "(display_name, is_enabled, sequence, a condition, or an action)"
+        )
+
+    patch = MessageRule()
+    if display_name is not None:
+        if not display_name.strip():
+            raise GraphValidationError("`display_name` cannot be empty")
+        patch.display_name = display_name
+    if is_enabled is not None:
+        patch.is_enabled = is_enabled
+    if sequence is not None:
+        patch.sequence = sequence
+    if new_conditions is not None:
+        patch.conditions = new_conditions
+    if new_actions is not None:
+        patch.actions = new_actions
+
+    try:
+        updated = await (
+            _rules_endpoint(graph, mailbox).by_message_rule_id(rule_id).patch(patch)
+        )
+    except NotAuthenticatedError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise map_kiota_error(exc) from exc
+    return trim_message_rule(message_rule_to_dict(updated), include_raw=include_raw)
+
+
 async def delete_rule(*, graph, rule_id: str, mailbox: str | None = None) -> dict:
     """Delete an inbox mail rule by id.
 
@@ -315,6 +420,45 @@ def register(mcp, *, graph) -> None:
             stop_processing_rules=stop_processing_rules,
             sequence=sequence,
             is_enabled=is_enabled,
+            mailbox=mailbox,
+            include_raw=include_raw,
+        )
+
+    @mcp.tool(name="update_rule", description=update_rule.__doc__ or "")
+    async def _update_rule(
+        rule_id: str,
+        display_name: str | None = None,
+        is_enabled: bool | None = None,
+        sequence: int | None = None,
+        sender_contains: list[str] | None = None,
+        subject_contains: list[str] | None = None,
+        body_contains: list[str] | None = None,
+        body_or_subject_contains: list[str] | None = None,
+        from_addresses: list[str] | None = None,
+        has_attachments: bool | None = None,
+        move_to_folder: str | None = None,
+        mark_as_read: bool | None = None,
+        delete: bool | None = None,
+        stop_processing_rules: bool | None = None,
+        mailbox: str | None = None,
+        include_raw: bool = False,
+    ):
+        return await update_rule(
+            graph=graph,
+            rule_id=rule_id,
+            display_name=display_name,
+            is_enabled=is_enabled,
+            sequence=sequence,
+            sender_contains=sender_contains,
+            subject_contains=subject_contains,
+            body_contains=body_contains,
+            body_or_subject_contains=body_or_subject_contains,
+            from_addresses=from_addresses,
+            has_attachments=has_attachments,
+            move_to_folder=move_to_folder,
+            mark_as_read=mark_as_read,
+            delete=delete,
+            stop_processing_rules=stop_processing_rules,
             mailbox=mailbox,
             include_raw=include_raw,
         )

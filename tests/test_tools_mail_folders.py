@@ -144,6 +144,101 @@ def _build_folder_endpoint(folder):
 
 
 @pytest.mark.asyncio
+async def test_update_folder_rename_only():
+    graph = MagicMock()
+    mb = MagicMock()
+    renamed = _fake_folder(id_="fid", name="Renamed")
+    by_id = MagicMock()
+    by_id.patch = AsyncMock(return_value=renamed)
+    by_id.move.post = AsyncMock()
+    mb.mail_folders.by_mail_folder_id = MagicMock(return_value=by_id)
+    graph.mailbox = MagicMock(return_value=mb)
+
+    result = await mail_folders.update_folder(
+        graph=graph, folder_id="fid", display_name="Renamed"
+    )
+    assert result["display_name"] == "Renamed"
+    mb.mail_folders.by_mail_folder_id.assert_called_with("fid")
+    patched = by_id.patch.await_args.args[0]
+    assert patched.display_name == "Renamed"
+    by_id.move.post.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_folder_reparent_only():
+    graph = MagicMock()
+    mb = MagicMock()
+    moved = _fake_folder(id_="fid", name="Sub")
+    by_id = MagicMock()
+    by_id.move.post = AsyncMock(return_value=moved)
+    by_id.patch = AsyncMock()
+    mb.mail_folders.by_mail_folder_id = MagicMock(return_value=by_id)
+    graph.mailbox = MagicMock(return_value=mb)
+
+    result = await mail_folders.update_folder(
+        graph=graph, folder_id="fid", parent_folder_id="new-parent"
+    )
+    assert result["id"] == "fid"
+    move_body = by_id.move.post.await_args.args[0]
+    assert move_body.destination_id == "new-parent"
+    by_id.patch.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_folder_rename_and_reparent():
+    graph = MagicMock()
+    mb = MagicMock()
+    renamed = _fake_folder(id_="fid", name="Renamed")
+    moved = _fake_folder(id_="fid", name="Renamed")
+    by_id = MagicMock()
+    by_id.patch = AsyncMock(return_value=renamed)
+    by_id.move.post = AsyncMock(return_value=moved)
+    mb.mail_folders.by_mail_folder_id = MagicMock(return_value=by_id)
+    graph.mailbox = MagicMock(return_value=mb)
+
+    result = await mail_folders.update_folder(
+        graph=graph,
+        folder_id="fid",
+        display_name="Renamed",
+        parent_folder_id="new-parent",
+    )
+    assert result["display_name"] == "Renamed"
+    by_id.patch.assert_awaited_once()
+    by_id.move.post.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_update_folder_requires_folder_id():
+    from outlook_mcp.graph.errors import GraphValidationError
+
+    graph = MagicMock()
+    with pytest.raises(GraphValidationError):
+        await mail_folders.update_folder(
+            graph=graph, folder_id="", display_name="x"
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_folder_requires_at_least_one_field():
+    from outlook_mcp.graph.errors import GraphValidationError
+
+    graph = MagicMock()
+    with pytest.raises(GraphValidationError, match="At least one"):
+        await mail_folders.update_folder(graph=graph, folder_id="fid")
+
+
+@pytest.mark.asyncio
+async def test_update_folder_rejects_whitespace_name():
+    from outlook_mcp.graph.errors import GraphValidationError
+
+    graph = MagicMock()
+    with pytest.raises(GraphValidationError):
+        await mail_folders.update_folder(
+            graph=graph, folder_id="fid", display_name="   "
+        )
+
+
+@pytest.mark.asyncio
 async def test_delete_folder_empty_calls_delete():
     graph, mb, by_id = _build_folder_endpoint(_empty_folder(id_="fid"))
     result = await mail_folders.delete_folder(graph=graph, folder_id="fid")

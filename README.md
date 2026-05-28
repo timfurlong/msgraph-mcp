@@ -11,9 +11,9 @@ A Model Context Protocol (MCP) server that exposes Microsoft Outlook **mail** an
 | Util           | `whoami`                                                                                                                                               |
 | Mail — read    | `list_messages`, `search_messages`, `get_message`, `list_attachments`, `download_attachment`                                                           |
 | Mail — write   | `send_message`, `create_draft`, `reply_message`, `reply_all_message`, `forward_message`, `update_message`, `delete_message`                            |
-| Mail — folders | `list_folders`, `create_folder`, `delete_folder`, `move_message`                                                                                       |
+| Mail — folders | `list_folders`, `create_folder`, `update_folder`, `delete_folder`, `move_message`                                                                      |
 | Mail — actions | `archive_message`, `mark_read`, `mark_unread`, `flag_message`, `unflag_message`                                                                        |
-| Mail — rules   | `list_rules`, `get_rule`, `create_rule`, `delete_rule`                                                                                                 |
+| Mail — rules   | `list_rules`, `get_rule`, `create_rule`, `update_rule`, `delete_rule`                                                                                  |
 | Calendar       | `list_calendars`, `list_events`, `get_event`, `create_event`, `update_event`, `delete_event`, `cancel_event`, `respond_to_event`, `find_meeting_times` |
 
 Every tool that touches a mailbox or calendar accepts an optional `mailbox` argument (email or user ID) to target shared mailboxes/calendars. Omit it to use the signed-in user's own mailbox.
@@ -107,16 +107,15 @@ create_rule(
 
 Conditions inside one rule are AND-ed by Outlook. Pass a list to a single condition (e.g. `sender_contains=["example.com", "monitor.io"]`) for OR within that condition. Rules only run against the inbox — Graph's `messageRules` endpoint is hardcoded there and does not support per-folder rules.
 
-`create_rule` requires at least one condition and one action. Update isn't supported on purpose; delete + recreate.
+`create_rule` requires at least one condition and one action. `update_rule` patches a rule in place but **replaces** the `conditions` or `actions` block whenever you pass any condition/action arg — call `get_rule` first if you need to preserve existing values.
 
 ## Future work
 
 Not implemented; reasonable additions:
 
 - **Graph `$batch` requests.** Performance optimization that bundles multiple Graph calls into one HTTP round-trip; would speed up multi-step workflows but adds complexity. Defer until profiling proves the win.
-- **`update_rule`.** Graph's PATCH on `messageRules` requires sending the full nested `conditions`/`actions` objects, which is fragile; today the workflow is delete + recreate.
 
-Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote/Teams, multi-account switching, change-notification subscriptions, folder rename, force-delete of non-empty folders.
+Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote/Teams, multi-account switching, change-notification subscriptions, force-delete of non-empty folders.
 
 ## Development
 

@@ -168,6 +168,101 @@ async def test_create_rule_rejects_invalid_from_address():
 
 
 @pytest.mark.asyncio
+async def test_update_rule_top_level_fields_only():
+    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    by_id = MagicMock()
+    by_id.patch = AsyncMock(return_value=_fake_rule(id_="rule-1", name="Renamed"))
+    inbox.message_rules.by_message_rule_id = MagicMock(return_value=by_id)
+
+    result = await mail_rules.update_rule(
+        graph=graph,
+        rule_id="rule-1",
+        display_name="Renamed",
+        is_enabled=False,
+        sequence=3,
+    )
+    assert result["id"] == "rule-1"
+    inbox.message_rules.by_message_rule_id.assert_called_once_with("rule-1")
+    patched = by_id.patch.await_args.args[0]
+    assert patched.display_name == "Renamed"
+    assert patched.is_enabled is False
+    assert patched.sequence == 3
+    # No conditions/actions args passed → blocks left untouched.
+    changed = patched.backing_store.enumerate_keys_for_values_changed_to_null()
+    assert list(changed) == []
+
+
+@pytest.mark.asyncio
+async def test_update_rule_replaces_conditions_block():
+    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    by_id = MagicMock()
+    by_id.patch = AsyncMock(return_value=_fake_rule(id_="rule-1"))
+    inbox.message_rules.by_message_rule_id = MagicMock(return_value=by_id)
+
+    await mail_rules.update_rule(
+        graph=graph,
+        rule_id="rule-1",
+        subject_contains=["[urgent]"],
+    )
+    patched = by_id.patch.await_args.args[0]
+    assert patched.conditions is not None
+    assert patched.conditions.subject_contains == ["[urgent]"]
+    # Actions block not sent → preserved by Graph.
+    assert patched.actions is None
+    cond_nulls = patched.conditions.backing_store.enumerate_keys_for_values_changed_to_null()
+    assert list(cond_nulls) == []
+
+
+@pytest.mark.asyncio
+async def test_update_rule_replaces_actions_block():
+    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    by_id = MagicMock()
+    by_id.patch = AsyncMock(return_value=_fake_rule(id_="rule-1"))
+    inbox.message_rules.by_message_rule_id = MagicMock(return_value=by_id)
+
+    await mail_rules.update_rule(
+        graph=graph,
+        rule_id="rule-1",
+        move_to_folder="new-folder",
+        stop_processing_rules=True,
+    )
+    patched = by_id.patch.await_args.args[0]
+    assert patched.actions is not None
+    assert patched.actions.move_to_folder == "new-folder"
+    assert patched.actions.stop_processing_rules is True
+    assert patched.conditions is None
+
+
+@pytest.mark.asyncio
+async def test_update_rule_requires_rule_id():
+    from outlook_mcp.graph.errors import GraphValidationError
+
+    graph = MagicMock()
+    with pytest.raises(GraphValidationError):
+        await mail_rules.update_rule(graph=graph, rule_id="", display_name="x")
+
+
+@pytest.mark.asyncio
+async def test_update_rule_requires_at_least_one_field():
+    from outlook_mcp.graph.errors import GraphValidationError
+
+    graph = MagicMock()
+    with pytest.raises(GraphValidationError, match="At least one field"):
+        await mail_rules.update_rule(graph=graph, rule_id="rule-1")
+
+
+@pytest.mark.asyncio
+async def test_update_rule_rejects_whitespace_display_name():
+    from outlook_mcp.graph.errors import GraphValidationError
+
+    graph = MagicMock()
+    with pytest.raises(GraphValidationError):
+        await mail_rules.update_rule(
+            graph=graph, rule_id="rule-1", display_name="   "
+        )
+
+
+@pytest.mark.asyncio
 async def test_delete_rule_calls_delete_endpoint():
     graph, mb, inbox = _build_graph_with_rules_endpoint()
     by_id = MagicMock(delete=AsyncMock(return_value=None))

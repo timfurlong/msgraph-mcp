@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from msgraph.generated.models.mail_folder import MailFolder
+from msgraph.generated.users.item.mail_folders.item.move.move_post_request_body import (
+    MovePostRequestBody as FolderMovePostRequestBody,
+)
 from msgraph.generated.users.item.messages.item.move.move_post_request_body import (
     MovePostRequestBody,
 )
@@ -110,6 +113,59 @@ async def create_folder(
     return trim_folder(folder_to_dict(created), include_raw=include_raw)
 
 
+async def update_folder(
+    *,
+    graph,
+    folder_id: str,
+    display_name: str | None = None,
+    parent_folder_id: str | None = None,
+    mailbox: str | None = None,
+    include_raw: bool = False,
+) -> dict:
+    """Rename and/or reparent a mail folder.
+
+    At least one of ``display_name`` or ``parent_folder_id`` is required.
+    Well-known folders (inbox, drafts, sent items, etc.) cannot be
+    renamed or moved — Graph will reject the request.
+
+    Args:
+        folder_id: Graph folder id. Required.
+        display_name: New folder name. None = unchanged.
+        parent_folder_id: Move under this folder. Accepts a folder id or
+            a well-known name ('inbox', 'archive', etc.). None = unchanged.
+        mailbox: Optional mailbox (email or user id) for shared mailboxes.
+        include_raw: Include the raw Graph payload.
+
+    Returns:
+        The trimmed updated folder.
+    """
+    if not folder_id:
+        raise GraphValidationError("`folder_id` is required")
+    if display_name is None and parent_folder_id is None:
+        raise GraphValidationError(
+            "At least one of `display_name` or `parent_folder_id` is required"
+        )
+    if display_name is not None and not display_name.strip():
+        raise GraphValidationError("`display_name` cannot be empty")
+
+    folder_endpoint = graph.mailbox(mailbox).mail_folders.by_mail_folder_id(folder_id)
+    result = None
+    try:
+        if display_name is not None:
+            patch = MailFolder()
+            patch.display_name = display_name
+            result = await folder_endpoint.patch(patch)
+        if parent_folder_id is not None:
+            move_body = FolderMovePostRequestBody()
+            move_body.destination_id = parent_folder_id
+            result = await folder_endpoint.move.post(move_body)
+    except NotAuthenticatedError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise map_kiota_error(exc) from exc
+    return trim_folder(folder_to_dict(result), include_raw=include_raw)
+
+
 async def delete_folder(
     *,
     graph,
@@ -179,6 +235,23 @@ def register(mcp, *, graph) -> None:
     ):
         return await create_folder(
             graph=graph,
+            display_name=display_name,
+            parent_folder_id=parent_folder_id,
+            mailbox=mailbox,
+            include_raw=include_raw,
+        )
+
+    @mcp.tool(name="update_folder", description=update_folder.__doc__ or "")
+    async def _update_folder(
+        folder_id: str,
+        display_name: str | None = None,
+        parent_folder_id: str | None = None,
+        mailbox: str | None = None,
+        include_raw: bool = False,
+    ):
+        return await update_folder(
+            graph=graph,
+            folder_id=folder_id,
             display_name=display_name,
             parent_folder_id=parent_folder_id,
             mailbox=mailbox,
