@@ -42,6 +42,23 @@ def test_trim_message_handles_missing_optional_fields():
     assert t["cc"] == []
     assert t["received"] is None
     assert t["flag"] == "notFlagged"
+    assert t["parent_folder_id"] is None
+    assert t["inference_classification"] is None
+
+
+def test_trim_message_surfaces_parent_folder_and_inference():
+    raw = {
+        "id": "x",
+        "subject": "y",
+        "isRead": True,
+        "isDraft": False,
+        "hasAttachments": False,
+        "parentFolderId": "AAMkAGI-folder-id",
+        "inferenceClassification": "focused",
+    }
+    t = trimming.trim_message(raw, include_body=False, include_raw=False)
+    assert t["parent_folder_id"] == "AAMkAGI-folder-id"
+    assert t["inference_classification"] == "focused"
 
 
 def test_trim_event_minimal():

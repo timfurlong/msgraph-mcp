@@ -58,6 +58,18 @@ def test_message_to_dict_minimal():
     assert d["flag"] == {"flagStatus": "notFlagged"}
 
 
+def test_message_to_dict_surfaces_parent_folder_and_inference():
+    msg = SimpleNamespace(
+        id="m1",
+        parent_folder_id="AAMkAGI-folder-id",
+        inference_classification=SimpleNamespace(value="focused"),
+        additional_data={},
+    )
+    d = serialize.message_to_dict(msg)
+    assert d["parentFolderId"] == "AAMkAGI-folder-id"
+    assert d["inferenceClassification"] == "focused"
+
+
 def test_folder_to_dict():
     f = SimpleNamespace(
         id="f1",

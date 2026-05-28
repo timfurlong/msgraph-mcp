@@ -87,6 +87,7 @@ def message_to_dict(msg: Any) -> dict:
         "conversationId": getattr(msg, "conversation_id", None),
         "webLink": getattr(msg, "web_link", None),
         "parentFolderId": getattr(msg, "parent_folder_id", None),
+        "inferenceClassification": _enum_value(getattr(msg, "inference_classification", None)),
     }
     return {**_additional(msg), **base}
 

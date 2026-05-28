@@ -50,6 +50,8 @@ def trim_message(raw: dict, *, include_body: bool, include_raw: bool) -> dict:
         "categories": list(raw.get("categories") or []),
         "conversation_id": raw.get("conversationId"),
         "web_link": raw.get("webLink"),
+        "parent_folder_id": raw.get("parentFolderId"),
+        "inference_classification": raw.get("inferenceClassification"),
     }
     if include_body:
         trimmed["body"] = body.get("content")
