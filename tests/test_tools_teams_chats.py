@@ -15,6 +15,7 @@ def _fake_chat(id_="c1"):
     return SimpleNamespace(
         id=id_, chat_type=SimpleNamespace(value="group"), topic="Launch",
         last_updated_date_time="2026-07-01T09:00:00Z",
+        last_message_preview=SimpleNamespace(created_date_time="2026-07-03T17:46:28Z"),
         members=[SimpleNamespace(display_name="Alice")],
         web_url="https://teams.example/chat/c1", additional_data={},
     )
@@ -41,9 +42,13 @@ async def test_list_chats_returns_trimmed_and_expands_members():
 
     graph.raw.me.chats.get.assert_awaited_once()
     rc = graph.raw.me.chats.get.await_args.kwargs["request_configuration"]
-    assert "members" in (getattr(rc.query_parameters, "expand", None) or [])
+    expand = getattr(rc.query_parameters, "expand", None) or []
+    assert "members" in expand
+    assert "lastMessagePreview" in expand
     assert result["items"][0]["id"] == "c1"
     assert result["items"][0]["members"] == ["Alice"]
+    assert result["items"][0]["last_message_time"] == "2026-07-03T17:46:28Z"
+    assert result["items"][0]["metadata_updated"] == "2026-07-01T09:00:00Z"
     assert result["next_page_token"] is None
 
 

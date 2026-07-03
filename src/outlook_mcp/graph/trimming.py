@@ -274,12 +274,18 @@ def trim_chat_message(raw: dict, *, include_body: bool, include_raw: bool) -> di
 
 
 def trim_chat(raw: dict, *, include_raw: bool) -> dict:
+    preview = raw.get("lastMessagePreview") or {}
     trimmed = {
         "id": raw.get("id"),
         "chat_type": raw.get("chatType"),
         "topic": raw.get("topic"),
         "members": list(raw.get("members") or []),
-        "last_updated": raw.get("lastUpdatedDateTime"),
+        # True last-activity time (created time of the most recent message).
+        "last_message_time": preview.get("createdDateTime"),
+        # Graph's lastUpdatedDateTime: only bumped on rename/membership
+        # changes, NOT on new messages. Kept for reference, but do not treat
+        # it as last activity -- use last_message_time for that.
+        "metadata_updated": raw.get("lastUpdatedDateTime"),
         "web_url": raw.get("webUrl"),
     }
     return _attach_raw(trimmed, raw, include_raw)

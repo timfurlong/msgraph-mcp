@@ -238,12 +238,24 @@ def test_chat_to_dict_flattens_member_names():
     chat = SimpleNamespace(
         id="c1", chat_type=SimpleNamespace(value="group"), topic="Launch",
         last_updated_date_time="2026-07-01T09:00:00Z",
+        last_message_preview=SimpleNamespace(created_date_time="2026-07-03T17:46:28Z"),
         members=[SimpleNamespace(display_name="Alice"), SimpleNamespace(display_name="Bob"), SimpleNamespace(display_name=None)],
         web_url="https://teams.example/chat/c1", additional_data={},
     )
     d = chat_to_dict(chat)
     assert d["chatType"] == "group"
     assert d["members"] == ["Alice", "Bob"]
+    assert d["lastMessagePreview"] == {"createdDateTime": "2026-07-03T17:46:28Z"}
+
+
+def test_chat_to_dict_missing_last_message_preview_is_none():
+    chat = SimpleNamespace(
+        id="c1", chat_type=SimpleNamespace(value="oneOnOne"), topic=None,
+        last_updated_date_time="2025-12-22T17:46:20Z", last_message_preview=None,
+        members=[SimpleNamespace(display_name="Alice")],
+        web_url="u", additional_data={},
+    )
+    assert chat_to_dict(chat)["lastMessagePreview"] is None
 
 
 def test_team_to_dict():

@@ -302,12 +302,25 @@ def _member_display_names(members: Any) -> list[str]:
     ]
 
 
+def _chat_message_info_to_dict(preview: Any) -> dict | None:
+    """Serialize a chat's lastMessagePreview (a chatMessageInfo).
+
+    Only createdDateTime is surfaced; it is the true "last activity" time,
+    unlike chat.lastUpdatedDateTime which only tracks rename/membership
+    changes.
+    """
+    if preview is None:
+        return None
+    return {"createdDateTime": getattr(preview, "created_date_time", None)}
+
+
 def chat_to_dict(chat: Any) -> dict:
     base = {
         "id": getattr(chat, "id", None),
         "chatType": _enum_value(getattr(chat, "chat_type", None)),
         "topic": getattr(chat, "topic", None),
         "lastUpdatedDateTime": getattr(chat, "last_updated_date_time", None),
+        "lastMessagePreview": _chat_message_info_to_dict(getattr(chat, "last_message_preview", None)),
         "members": _member_display_names(getattr(chat, "members", None)),
         "webUrl": getattr(chat, "web_url", None),
     }

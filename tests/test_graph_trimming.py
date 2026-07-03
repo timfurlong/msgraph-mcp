@@ -285,10 +285,23 @@ def test_trim_chat_message_snippet_truncates():
 def test_trim_chat_flattens():
     raw = {"id": "c1", "chatType": "group", "topic": "Launch",
            "members": ["Alice", "Bob"], "lastUpdatedDateTime": "2026-07-01T09:00:00Z",
+           "lastMessagePreview": {"createdDateTime": "2026-07-03T17:46:28Z"},
            "webUrl": "https://teams.example/chat/c1"}
     t = trim_chat(raw, include_raw=False)
     assert t["chat_type"] == "group"
     assert t["members"] == ["Alice", "Bob"]
+    assert t["last_message_time"] == "2026-07-03T17:46:28Z"
+    assert t["metadata_updated"] == "2026-07-01T09:00:00Z"
+
+
+def test_trim_chat_missing_last_message_preview():
+    # A chat with no lastMessagePreview (e.g. never-messaged) must not raise
+    # and must yield last_message_time == None.
+    raw = {"id": "c1", "chatType": "oneOnOne", "members": ["Alice"],
+           "lastUpdatedDateTime": "2025-12-22T17:46:20Z"}
+    t = trim_chat(raw, include_raw=False)
+    assert t["last_message_time"] is None
+    assert t["metadata_updated"] == "2025-12-22T17:46:20Z"
 
 
 def test_trim_team_and_channel():

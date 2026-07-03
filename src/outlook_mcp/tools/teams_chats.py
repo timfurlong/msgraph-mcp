@@ -18,7 +18,7 @@ from outlook_mcp.graph.trimming import trim_chat, trim_chat_message
 def _list_chats_query(*, limit: int):
     qp = ChatsRequestBuilder.ChatsRequestBuilderGetQueryParameters(
         top=limit,
-        expand=["members"],
+        expand=["members", "lastMessagePreview"],
     )
     return RequestConfiguration[ChatsRequestBuilder.ChatsRequestBuilderGetQueryParameters](
         query_parameters=qp
@@ -42,7 +42,16 @@ async def list_chats(
     """List the signed-in user's Teams chats (1:1, group, meeting).
 
     Members are expanded so 1:1 chats (which have no topic) are identifiable
-    by participant name. Results come back in Graph's default order.
+    by participant name. Results come back in Graph's default order (most
+    recent message activity first).
+
+    Each item carries two timestamps; use the right one:
+    - last_message_time: created time of the most recent message (from the
+      expanded lastMessagePreview). This is the true "last activity" time.
+    - metadata_updated: Graph's lastUpdatedDateTime, which only changes on
+      rename/membership events (e.g. someone joining a meeting call), NOT on
+      new messages. Do not use it to judge recency -- a busy 1:1 can show a
+      months-old metadata_updated.
 
     Args:
         limit: 1-100. Default 25.
