@@ -14,6 +14,9 @@ from outlook_mcp.tools import (
     mail_read,
     mail_rules,
     mail_write,
+    teams_chats,
+    teams_channels,
+    teams_content,
     util,
 )
 
@@ -27,3 +30,6 @@ def register_all(mcp, *, graph) -> None:
     mail_batch.register(mcp, graph=graph)
     mail_rules.register(mcp, graph=graph)
     calendar.register(mcp, graph=graph)
+    teams_chats.register(mcp, graph=graph)
+    teams_channels.register(mcp, graph=graph)
+    teams_content.register(mcp, graph=graph)

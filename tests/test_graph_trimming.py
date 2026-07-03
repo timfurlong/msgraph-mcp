@@ -1,6 +1,13 @@
 from tests.fixtures import load
 
 from outlook_mcp.graph import trimming
+from outlook_mcp.graph.trimming import (
+    trim_chat_message,
+    trim_chat,
+    trim_team,
+    trim_channel,
+    trim_hosted_content_download,
+)
 
 
 def test_trim_message_minimal():
@@ -210,3 +217,91 @@ def test_trim_message_rule_with_from_addresses():
     assert t["actions"]["forward_to"] == [
         {"name": "Forwardee", "address": "fwd@example.com"},
     ]
+
+
+def _raw_chat_message(**over):
+    base = {
+        "id": "m1",
+        "messageType": "message",
+        "createdDateTime": "2026-07-01T10:00:00Z",
+        "lastModifiedDateTime": "2026-07-01T10:00:00Z",
+        "deletedDateTime": None,
+        "importance": "normal",
+        "subject": None,
+        "from": {"id": "u1", "displayName": "Alice"},
+        "body": {"contentType": "html", "content": '<p>Hello <b>there</b> &amp; welcome</p>'},
+        "attachments": [{"id": "a1", "name": "f.docx", "contentType": "reference", "contentUrl": "https://example.com/f.docx"}],
+        "mentions": [{"id": 0, "mentionText": "Bob"}],
+        "reactions": [{"reactionType": "like"}, {"reactionType": "like"}, {"reactionType": "heart"}],
+        "webUrl": "https://teams.example/msg/1",
+    }
+    base.update(over)
+    return base
+
+
+def test_trim_chat_message_snippet_strips_html_and_unescapes():
+    t = trim_chat_message(_raw_chat_message(), include_body=False, include_raw=False)
+    assert t["snippet"] == "Hello there & welcome"
+    assert t["from"] == "Alice"
+    assert t["from_id"] == "u1"
+    assert t["body_type"] == "html"
+    assert "body" not in t
+
+
+def test_trim_chat_message_reaction_counts():
+    t = trim_chat_message(_raw_chat_message(), include_body=False, include_raw=False)
+    assert t["reactions"] == {"like": 2, "heart": 1}
+    assert t["mentions"] == ["Bob"]
+    assert t["attachments"][0]["content_url"] == "https://example.com/f.docx"
+
+
+def test_trim_chat_message_include_body_returns_full_content():
+    t = trim_chat_message(_raw_chat_message(), include_body=True, include_raw=False)
+    assert t["body"] == '<p>Hello <b>there</b> &amp; welcome</p>'
+
+
+def test_trim_chat_message_extracts_hosted_content_ids():
+    raw = _raw_chat_message(body={
+        "contentType": "html",
+        "content": '<div><img src="https://graph.microsoft.com/v1.0/chats/c1/messages/m1/hostedContents/abc123/$value"></div>',
+    })
+    t = trim_chat_message(raw, include_body=False, include_raw=False)
+    assert t["hosted_content_refs"] == [{"hosted_content_id": "abc123"}]
+
+
+def test_trim_chat_message_deleted_flag():
+    raw = _raw_chat_message(deletedDateTime="2026-07-02T00:00:00Z")
+    t = trim_chat_message(raw, include_body=False, include_raw=False)
+    assert t["deleted"] is True
+
+
+def test_trim_chat_message_snippet_truncates():
+    raw = _raw_chat_message(body={"contentType": "text", "content": "x" * 400})
+    t = trim_chat_message(raw, include_body=False, include_raw=False)
+    assert t["snippet"].endswith("...")
+    assert len(t["snippet"]) <= 283
+
+
+def test_trim_chat_flattens():
+    raw = {"id": "c1", "chatType": "group", "topic": "Launch",
+           "members": ["Alice", "Bob"], "lastUpdatedDateTime": "2026-07-01T09:00:00Z",
+           "webUrl": "https://teams.example/chat/c1"}
+    t = trim_chat(raw, include_raw=False)
+    assert t["chat_type"] == "group"
+    assert t["members"] == ["Alice", "Bob"]
+
+
+def test_trim_team_and_channel():
+    assert trim_team({"id": "t1", "displayName": "Eng", "description": "d"}, include_raw=False) == {
+        "id": "t1", "display_name": "Eng", "description": "d",
+    }
+    ch = trim_channel({"id": "ch1", "displayName": "General", "description": None,
+                       "membershipType": "standard", "webUrl": "u"}, include_raw=False)
+    assert ch["membership_type"] == "standard"
+
+
+def test_trim_hosted_content_download():
+    t = trim_hosted_content_download(
+        {"contentType": "image/png", "size": 4, "contentBytes": "AAECAw=="}, include_raw=False
+    )
+    assert t == {"content_type": "image/png", "size_bytes": 4, "content_base64": "AAECAw=="}

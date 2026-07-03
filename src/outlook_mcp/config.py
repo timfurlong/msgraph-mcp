@@ -24,6 +24,11 @@ SCOPES: list[str] = [
     "Calendars.ReadWrite.Shared",
     "MailboxSettings.ReadWrite",
     "User.Read",
+    # Teams read-history (ChannelMessage.Read.All requires tenant admin consent)
+    "Chat.Read",
+    "Team.ReadBasic.All",
+    "Channel.ReadBasic.All",
+    "ChannelMessage.Read.All",
 ]
 
 

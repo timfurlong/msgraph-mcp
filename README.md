@@ -109,13 +109,40 @@ Conditions inside one rule are AND-ed by Outlook. Pass a list to a single condit
 
 `create_rule` requires at least one condition and one action. `update_rule` patches a rule in place but **replaces** the `conditions` or `actions` block whenever you pass any condition/action arg — call `get_rule` first if you need to preserve existing values.
 
+## Microsoft Teams (read-only)
+
+Read Teams message history as the signed-in user:
+
+- `list_chats`, `list_chat_messages`: your 1:1 and group chats.
+- `list_joined_teams`, `list_channels`, `list_channel_messages`, `list_message_replies`: team channels and their threads.
+- `download_hosted_content`: download an inline image referenced by a message (`hosted_content_refs`).
+
+### Permissions and consent
+
+These delegated scopes are required (already listed in `SCOPES`):
+
+- `Chat.Read`, `Team.ReadBasic.All`, `Channel.ReadBasic.All`: user-consentable.
+- `ChannelMessage.Read.All`: requires tenant administrator consent.
+
+Setup:
+
+1. Add the four delegated permissions to the app registration.
+2. Grant tenant admin consent for `ChannelMessage.Read.All`.
+3. Because the scope set changed, re-run the device-code login so the cached token carries the new scopes.
+
+### Notes and limits
+
+- Reading is delegated-only: you can read your own chats, not other users' chats.
+- Channel message and reply pages are capped at 50 by Graph.
+- SharePoint/OneDrive-backed file attachments are not downloadable here. In Teams, shared files are attachments whose `contentUrl` points into SharePoint, which is a different Graph surface (needs `Files.Read.All` / `Sites.Read.All` and the driveItem APIs). `download_hosted_content` covers inline hosted content (images), not shared files. This is deferred.
+
 ## Future work
 
 Not implemented; reasonable additions:
 
 - **Graph `$batch` requests.** Performance optimization that bundles multiple Graph calls into one HTTP round-trip; would speed up multi-step workflows but adds complexity. Defer until profiling proves the win.
 
-Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote/Teams, multi-account switching, change-notification subscriptions, force-delete of non-empty folders.
+Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote, multi-account switching, change-notification subscriptions, force-delete of non-empty folders.
 
 ## Development
 

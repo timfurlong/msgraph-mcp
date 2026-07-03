@@ -1,6 +1,12 @@
 from types import SimpleNamespace
 
 from outlook_mcp.graph import serialize
+from outlook_mcp.graph.serialize import (
+    chat_message_to_dict,
+    chat_to_dict,
+    team_to_dict,
+    channel_to_dict,
+)
 
 
 def test_user_to_dict():
@@ -183,3 +189,72 @@ def test_message_rule_to_dict_minimal():
     assert d["isEnabled"] is True
     assert d["conditions"] is None
     assert d["actions"] is None
+
+
+def _fake_chat_message():
+    return SimpleNamespace(
+        id="1700000000000",
+        message_type=SimpleNamespace(value="message"),
+        created_date_time="2026-07-01T10:00:00Z",
+        last_modified_date_time="2026-07-01T10:00:00Z",
+        deleted_date_time=None,
+        importance=SimpleNamespace(value="normal"),
+        subject=None,
+        from_=SimpleNamespace(user=SimpleNamespace(id="u1", display_name="Alice")),
+        body=SimpleNamespace(content_type=SimpleNamespace(value="html"), content="<p>hi</p>"),
+        attachments=[SimpleNamespace(id="a1", content_type="reference", content_url="https://example.com/f.docx", name="f.docx")],
+        mentions=[SimpleNamespace(id=0, mention_text="Bob")],
+        reactions=[SimpleNamespace(reaction_type="like", created_date_time="2026-07-01T10:05:00Z", user=SimpleNamespace(user=SimpleNamespace(id="u2", display_name="Bob")))],
+        web_url="https://teams.example/msg/1",
+        etag="1700000000000",
+        additional_data={},
+    )
+
+
+def test_chat_message_to_dict_core_fields():
+    d = chat_message_to_dict(_fake_chat_message())
+    assert d["id"] == "1700000000000"
+    assert d["messageType"] == "message"
+    assert d["from"] == {"id": "u1", "displayName": "Alice"}
+    assert d["body"] == {"contentType": "html", "content": "<p>hi</p>"}
+    assert d["attachments"][0]["name"] == "f.docx"
+    assert d["mentions"][0]["mentionText"] == "Bob"
+    assert d["reactions"][0]["reactionType"] == "like"
+
+
+def test_chat_message_to_dict_handles_missing_from_and_body():
+    msg = SimpleNamespace(id="x", message_type=None, created_date_time=None,
+                          last_modified_date_time=None, deleted_date_time=None,
+                          importance=None, subject=None, from_=None, body=None,
+                          attachments=None, mentions=None, reactions=None,
+                          web_url=None, etag=None, additional_data={})
+    d = chat_message_to_dict(msg)
+    assert d["from"] is None
+    assert d["body"] is None
+    assert d["attachments"] == []
+
+
+def test_chat_to_dict_flattens_member_names():
+    chat = SimpleNamespace(
+        id="c1", chat_type=SimpleNamespace(value="group"), topic="Launch",
+        last_updated_date_time="2026-07-01T09:00:00Z",
+        members=[SimpleNamespace(display_name="Alice"), SimpleNamespace(display_name="Bob"), SimpleNamespace(display_name=None)],
+        web_url="https://teams.example/chat/c1", additional_data={},
+    )
+    d = chat_to_dict(chat)
+    assert d["chatType"] == "group"
+    assert d["members"] == ["Alice", "Bob"]
+
+
+def test_team_to_dict():
+    team = SimpleNamespace(id="t1", display_name="Eng", description="Engineering", additional_data={})
+    assert team_to_dict(team) == {"id": "t1", "displayName": "Eng", "description": "Engineering"}
+
+
+def test_channel_to_dict():
+    ch = SimpleNamespace(id="ch1", display_name="General", description=None,
+                         membership_type=SimpleNamespace(value="standard"),
+                         web_url="https://teams.example/ch1", additional_data={})
+    d = channel_to_dict(ch)
+    assert d["displayName"] == "General"
+    assert d["membershipType"] == "standard"

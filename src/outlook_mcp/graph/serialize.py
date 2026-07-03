@@ -233,3 +233,102 @@ def message_rule_to_dict(rule: Any) -> dict:
         "actions": message_rule_actions_to_dict(getattr(rule, "actions", None)),
     }
     return {**_additional(rule), **base}
+
+
+def identity_to_dict(identity: Any) -> dict | None:
+    if identity is None:
+        return None
+    return {
+        "id": getattr(identity, "id", None),
+        "displayName": getattr(identity, "display_name", None),
+    }
+
+
+def _identity_set_user(idset: Any) -> dict | None:
+    if idset is None:
+        return None
+    return identity_to_dict(getattr(idset, "user", None))
+
+
+def _chat_attachment_to_dict(att: Any) -> dict:
+    return {
+        "id": getattr(att, "id", None),
+        "contentType": getattr(att, "content_type", None),
+        "contentUrl": getattr(att, "content_url", None),
+        "name": getattr(att, "name", None),
+    }
+
+
+def _chat_mention_to_dict(m: Any) -> dict:
+    return {
+        "id": getattr(m, "id", None),
+        "mentionText": getattr(m, "mention_text", None),
+    }
+
+
+def _chat_reaction_to_dict(r: Any) -> dict:
+    return {
+        "reactionType": getattr(r, "reaction_type", None),
+        "createdDateTime": getattr(r, "created_date_time", None),
+        "user": _identity_set_user(getattr(r, "user", None)),
+    }
+
+
+def chat_message_to_dict(msg: Any) -> dict:
+    base = {
+        "id": getattr(msg, "id", None),
+        "messageType": _enum_value(getattr(msg, "message_type", None)),
+        "createdDateTime": getattr(msg, "created_date_time", None),
+        "lastModifiedDateTime": getattr(msg, "last_modified_date_time", None),
+        "deletedDateTime": getattr(msg, "deleted_date_time", None),
+        "importance": _enum_value(getattr(msg, "importance", None)),
+        "subject": getattr(msg, "subject", None),
+        "from": _identity_set_user(getattr(msg, "from_", None)),
+        "body": _body_to_dict(getattr(msg, "body", None)),
+        "attachments": [_chat_attachment_to_dict(a) for a in (getattr(msg, "attachments", None) or [])],
+        "mentions": [_chat_mention_to_dict(m) for m in (getattr(msg, "mentions", None) or [])],
+        "reactions": [_chat_reaction_to_dict(r) for r in (getattr(msg, "reactions", None) or [])],
+        "webUrl": getattr(msg, "web_url", None),
+        "etag": getattr(msg, "etag", None),
+    }
+    return {**_additional(msg), **base}
+
+
+def _member_display_names(members: Any) -> list[str]:
+    return [
+        getattr(m, "display_name", None)
+        for m in (members or [])
+        if getattr(m, "display_name", None)
+    ]
+
+
+def chat_to_dict(chat: Any) -> dict:
+    base = {
+        "id": getattr(chat, "id", None),
+        "chatType": _enum_value(getattr(chat, "chat_type", None)),
+        "topic": getattr(chat, "topic", None),
+        "lastUpdatedDateTime": getattr(chat, "last_updated_date_time", None),
+        "members": _member_display_names(getattr(chat, "members", None)),
+        "webUrl": getattr(chat, "web_url", None),
+    }
+    return {**_additional(chat), **base}
+
+
+def team_to_dict(team: Any) -> dict:
+    base = {
+        "id": getattr(team, "id", None),
+        "displayName": getattr(team, "display_name", None),
+        "description": getattr(team, "description", None),
+    }
+    return {**_additional(team), **base}
+
+
+def channel_to_dict(ch: Any) -> dict:
+    base = {
+        "id": getattr(ch, "id", None),
+        "displayName": getattr(ch, "display_name", None),
+        "description": getattr(ch, "description", None),
+        "membershipType": _enum_value(getattr(ch, "membership_type", None)),
+        "webUrl": getattr(ch, "web_url", None),
+    }
+    return {**_additional(ch), **base}

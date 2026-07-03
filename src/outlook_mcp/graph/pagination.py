@@ -39,9 +39,9 @@ def decode_page_token(token: str) -> str:
     return url
 
 
-def validate_limit(limit: int) -> int:
-    if not isinstance(limit, int) or limit < 1 or limit > 100:
+def validate_limit(limit: int, *, maximum: int = 100) -> int:
+    if not isinstance(limit, int) or limit < 1 or limit > maximum:
         raise GraphValidationError(
-            f"limit must be an integer in 1..100 (got {limit!r})"
+            f"limit must be an integer in 1..{maximum} (got {limit!r})"
         )
     return limit

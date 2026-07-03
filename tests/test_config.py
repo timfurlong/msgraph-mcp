@@ -30,7 +30,7 @@ def test_token_cache_path_uses_override_with_tilde_expansion(monkeypatch):
 
 
 def test_scopes_match_spec():
-    # Spec section 5.3
+    # Mail/calendar scopes (outlook design 5.3) + Teams read scopes (teams design)
     assert config.SCOPES == [
         "Mail.ReadWrite",
         "Mail.ReadWrite.Shared",
@@ -39,7 +39,17 @@ def test_scopes_match_spec():
         "Calendars.ReadWrite.Shared",
         "MailboxSettings.ReadWrite",
         "User.Read",
+        "Chat.Read",
+        "Team.ReadBasic.All",
+        "Channel.ReadBasic.All",
+        "ChannelMessage.Read.All",
     ]
+
+
+def test_scopes_include_teams_read():
+    from outlook_mcp import config
+    for scope in ("Chat.Read", "Team.ReadBasic.All", "Channel.ReadBasic.All", "ChannelMessage.Read.All"):
+        assert scope in config.SCOPES
 
 
 def test_authority_uses_tenant_id(monkeypatch):

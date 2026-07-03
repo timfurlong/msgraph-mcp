@@ -11,6 +11,13 @@ from __future__ import annotations
 
 from typing import Any
 
+import html as _htmllib
+import re
+
+_TAG_RE = re.compile(r"<[^>]+>")
+_WS_RE = re.compile(r"\s+")
+_HOSTED_RE = re.compile(r"hostedContents/([^/\"'\s]+)/\$value")
+
 
 def _attach_raw(trimmed: dict, raw: dict, include_raw: bool) -> dict:
     if include_raw:
@@ -196,5 +203,113 @@ def trim_message_rule(raw: dict, *, include_raw: bool) -> dict:
         "is_read_only": bool(raw.get("isReadOnly")),
         "conditions": _trim_rule_conditions(raw.get("conditions")),
         "actions": _trim_rule_actions(raw.get("actions")),
+    }
+    return _attach_raw(trimmed, raw, include_raw)
+
+
+def _html_to_snippet(content: str | None, content_type: str | None, *, limit: int = 280) -> str | None:
+    if not content:
+        return None
+    text = content
+    if (content_type or "").lower() == "html":
+        text = _TAG_RE.sub(" ", text)
+    text = _htmllib.unescape(text)
+    text = _WS_RE.sub(" ", text).strip()
+    if len(text) > limit:
+        text = text[:limit].rstrip() + "..."
+    return text or None
+
+
+def _hosted_content_refs(content: str | None) -> list[dict]:
+    if not content:
+        return []
+    # dict.fromkeys preserves first-seen order and de-dupes repeated ids.
+    return [{"hosted_content_id": hid} for hid in dict.fromkeys(_HOSTED_RE.findall(content))]
+
+
+def _reaction_counts(reactions: list[dict] | None) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for r in reactions or []:
+        rt = r.get("reactionType")
+        if rt:
+            counts[rt] = counts.get(rt, 0) + 1
+    return counts
+
+
+def trim_chat_message(raw: dict, *, include_body: bool, include_raw: bool) -> dict:
+    body = raw.get("body") or {}
+    from_user = raw.get("from") or {}
+    content = body.get("content")
+    content_type = body.get("contentType")
+    attachments = [
+        {
+            "id": a.get("id"),
+            "name": a.get("name"),
+            "content_type": a.get("contentType"),
+            "content_url": a.get("contentUrl"),
+        }
+        for a in (raw.get("attachments") or [])
+    ]
+    mentions = [m.get("mentionText") for m in (raw.get("mentions") or []) if m.get("mentionText")]
+    trimmed: dict[str, Any] = {
+        "id": raw.get("id"),
+        "message_type": raw.get("messageType") or "message",
+        "from": from_user.get("displayName"),
+        "from_id": from_user.get("id"),
+        "created": raw.get("createdDateTime"),
+        "last_modified": raw.get("lastModifiedDateTime"),
+        "deleted": raw.get("deletedDateTime") is not None,
+        "importance": raw.get("importance") or "normal",
+        "subject": raw.get("subject"),
+        "snippet": _html_to_snippet(content, content_type),
+        "body_type": content_type or "text",
+        "attachments": attachments,
+        "mentions": mentions,
+        "hosted_content_refs": _hosted_content_refs(content),
+        "reactions": _reaction_counts(raw.get("reactions")),
+        "web_url": raw.get("webUrl"),
+    }
+    if include_body:
+        trimmed["body"] = content
+    return _attach_raw(trimmed, raw, include_raw)
+
+
+def trim_chat(raw: dict, *, include_raw: bool) -> dict:
+    trimmed = {
+        "id": raw.get("id"),
+        "chat_type": raw.get("chatType"),
+        "topic": raw.get("topic"),
+        "members": list(raw.get("members") or []),
+        "last_updated": raw.get("lastUpdatedDateTime"),
+        "web_url": raw.get("webUrl"),
+    }
+    return _attach_raw(trimmed, raw, include_raw)
+
+
+def trim_team(raw: dict, *, include_raw: bool) -> dict:
+    trimmed = {
+        "id": raw.get("id"),
+        "display_name": raw.get("displayName"),
+        "description": raw.get("description"),
+    }
+    return _attach_raw(trimmed, raw, include_raw)
+
+
+def trim_channel(raw: dict, *, include_raw: bool) -> dict:
+    trimmed = {
+        "id": raw.get("id"),
+        "display_name": raw.get("displayName"),
+        "description": raw.get("description"),
+        "membership_type": raw.get("membershipType"),
+        "web_url": raw.get("webUrl"),
+    }
+    return _attach_raw(trimmed, raw, include_raw)
+
+
+def trim_hosted_content_download(raw: dict, *, include_raw: bool) -> dict:
+    trimmed = {
+        "content_type": raw.get("contentType"),
+        "size_bytes": raw.get("size"),
+        "content_base64": raw.get("contentBytes"),
     }
     return _attach_raw(trimmed, raw, include_raw)
