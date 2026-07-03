@@ -1,10 +1,10 @@
 # Outlook MCP
 
-A Model Context Protocol (MCP) server that exposes Microsoft Outlook **mail** and **calendar** to AI agents via the Microsoft Graph SDK. Acts as the signed-in user (delegated permissions, MSAL device code flow).
+A Model Context Protocol (MCP) server that exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. Acts as the signed-in user (delegated permissions, MSAL device code flow).
 
 ## What it does
 
-35 workflow-oriented tools covering the common mail and calendar operations:
+Workflow-oriented tools covering common mail, calendar, and read-only Teams operations:
 
 | Group          | Tools                                                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -15,6 +15,7 @@ A Model Context Protocol (MCP) server that exposes Microsoft Outlook **mail** an
 | Mail — actions | `archive_message`, `mark_read`, `mark_unread`, `flag_message`, `unflag_message`                                                                        |
 | Mail — rules   | `list_rules`, `get_rule`, `create_rule`, `update_rule`, `delete_rule`                                                                                  |
 | Calendar       | `list_calendars`, `list_events`, `get_event`, `create_event`, `update_event`, `delete_event`, `cancel_event`, `respond_to_event`, `find_meeting_times` |
+| Teams (read)   | `list_chats`, `list_chat_messages`, `list_joined_teams`, `list_channels`, `list_channel_messages`, `list_message_replies`, `download_hosted_content`      |
 
 Every tool that touches a mailbox or calendar accepts an optional `mailbox` argument (email or user ID) to target shared mailboxes/calendars. Omit it to use the signed-in user's own mailbox.
 
@@ -64,9 +65,13 @@ The app registration (e.g. "Outlook MCP") requires:
   - `Calendars.ReadWrite`
   - `Calendars.ReadWrite.Shared`
   - `User.Read`
-- Admin consent for the Shared permissions if your tenant requires it.
+  - `Chat.Read` (Teams)
+  - `Team.ReadBasic.All` (Teams)
+  - `Channel.ReadBasic.All` (Teams)
+  - `ChannelMessage.Read.All` (Teams)
+- Admin consent: required for `ChannelMessage.Read.All` (always), plus the `*.Shared` permissions if your tenant requires it.
 
-> If you've already signed in before `MailboxSettings.ReadWrite` was added to the scope list, re-run `uv run outlook-mcp-login` so the cached token picks up the new scope. Without it, `create_rule` and `delete_rule` will fail with a consent error.
+> If you signed in before any of these scopes were added to the app (for example `MailboxSettings.ReadWrite`, or the Teams scopes), re-run `uv run outlook-mcp-login` so the cached token picks up the new scopes. Without them, calls needing the missing scope fail with a consent error.
 
 The CLI uses public-client device code flow — **no client secret** is needed or stored.
 
