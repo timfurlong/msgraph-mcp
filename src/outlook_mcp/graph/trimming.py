@@ -9,10 +9,9 @@ include_raw=True returns {**trimmed, "raw": raw}.
 
 from __future__ import annotations
 
-from typing import Any
-
 import html as _htmllib
 import re
+from typing import Any
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")

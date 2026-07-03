@@ -103,3 +103,32 @@ async def test_list_message_replies_caps_limit_at_50():
         await teams_channels.list_message_replies(
             graph=graph, team_id="t1", channel_id="ch1", message_id="m1", limit=51
         )
+
+
+@pytest.mark.asyncio
+async def test_list_channel_messages_page_token_uses_with_url():
+    # Covers the shared _paged page-token branch used by all four channel tools:
+    # a page_token must decode to a URL and route through builder.with_url(url).get(),
+    # not the first-page builder.get(request_configuration=...) path.
+    from outlook_mcp.graph.pagination import encode_next_link
+
+    graph = MagicMock()
+    with_url = MagicMock()
+    with_url.get = AsyncMock(return_value=_fake_collection([_fake_msg()]))
+    messages = MagicMock()
+    messages.with_url = MagicMock(return_value=with_url)
+    channel = MagicMock(messages=messages)
+    team = MagicMock()
+    team.channels.by_channel_id = MagicMock(return_value=channel)
+    graph.raw.teams.by_team_id = MagicMock(return_value=team)
+
+    url = "https://graph.microsoft.com/v1.0/teams/t1/channels/ch1/messages?$skip=25"
+    token = encode_next_link(url)
+
+    result = await teams_channels.list_channel_messages(
+        graph=graph, team_id="t1", channel_id="ch1", page_token=token
+    )
+
+    messages.with_url.assert_called_once_with(url)
+    messages.get.assert_not_called()
+    assert result["items"][0]["id"] == "m1"

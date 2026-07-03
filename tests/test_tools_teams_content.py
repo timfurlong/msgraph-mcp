@@ -82,3 +82,34 @@ async def test_download_rejects_partial_channel_location():
         await teams_content.download_hosted_content(
             graph=graph, team_id="t1", message_id="m1", hosted_content_id="h1"
         )
+
+
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        (b"\x89PNG\r\n\x1a\n\x00\x00", "image/png"),
+        (b"\xff\xd8\xff\xe0\x00\x10JFIF", "image/jpeg"),
+        (b"GIF89a\x01\x00", "image/gif"),
+        (b"GIF87a\x01\x00", "image/gif"),
+        (b"RIFF\x00\x00\x00\x00WEBPVP8 ", "image/webp"),
+        (b"not an image", None),
+        (b"", None),
+        (b"RIFF\x00\x00", None),  # too short to be a valid WEBP header
+    ],
+)
+def test_sniff_content_type(data, expected):
+    assert teams_content._sniff_content_type(data) == expected
+
+
+@pytest.mark.asyncio
+async def test_download_maps_graph_error():
+    from outlook_mcp.graph.errors import GraphAPIError
+
+    graph = MagicMock()
+    content = _wire_chat(graph)
+    content.get = AsyncMock(side_effect=RuntimeError("boom"))
+
+    with pytest.raises(GraphAPIError):
+        await teams_content.download_hosted_content(
+            graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1"
+        )

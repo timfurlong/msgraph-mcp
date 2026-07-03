@@ -305,3 +305,20 @@ def test_trim_hosted_content_download():
         {"contentType": "image/png", "size": 4, "contentBytes": "AAECAw=="}, include_raw=False
     )
     assert t == {"content_type": "image/png", "size_bytes": 4, "content_base64": "AAECAw=="}
+
+
+def test_trim_chat_message_minimal_all_missing():
+    # An empty raw dict (every key absent) must not raise and must produce
+    # sane defaults, guarding against a future None-handling regression.
+    t = trim_chat_message({}, include_body=False, include_raw=False)
+    assert t["id"] is None
+    assert t["message_type"] == "message"
+    assert t["from"] is None
+    assert t["from_id"] is None
+    assert t["snippet"] is None
+    assert t["body_type"] == "text"
+    assert t["attachments"] == []
+    assert t["mentions"] == []
+    assert t["hosted_content_refs"] == []
+    assert t["reactions"] == {}
+    assert t["deleted"] is False

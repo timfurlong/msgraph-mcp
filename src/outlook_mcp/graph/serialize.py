@@ -235,7 +235,7 @@ def message_rule_to_dict(rule: Any) -> dict:
     return {**_additional(rule), **base}
 
 
-def identity_to_dict(identity: Any) -> dict | None:
+def _identity_to_dict(identity: Any) -> dict | None:
     if identity is None:
         return None
     return {
@@ -247,7 +247,7 @@ def identity_to_dict(identity: Any) -> dict | None:
 def _identity_set_user(idset: Any) -> dict | None:
     if idset is None:
         return None
-    return identity_to_dict(getattr(idset, "user", None))
+    return _identity_to_dict(getattr(idset, "user", None))
 
 
 def _chat_attachment_to_dict(att: Any) -> dict:
