@@ -10,6 +10,7 @@ include_raw=True returns {**trimmed, "raw": raw}.
 from __future__ import annotations
 
 import html as _htmllib
+import json
 import re
 from typing import Any
 
@@ -235,20 +236,56 @@ def _reaction_counts(reactions: list[dict] | None) -> dict[str, int]:
     return counts
 
 
+def _card_texts(node: Any) -> list[str]:
+    """Collect every "text" string in an Adaptive Card JSON tree, in order."""
+    texts: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "text" and isinstance(value, str):
+                texts.append(value)
+            else:
+                texts.extend(_card_texts(value))
+    elif isinstance(node, list):
+        for value in node:
+            texts.extend(_card_texts(value))
+    return texts
+
+
+def _card_snippet(raw_attachments: list[dict], *, limit: int = 280) -> str | None:
+    """Build a snippet from card attachment text (app/bot posts have no body text)."""
+    texts: list[str] = []
+    for a in raw_attachments:
+        content = a.get("content")
+        if not isinstance(content, str) or "card" not in (a.get("contentType") or ""):
+            continue
+        try:
+            card = json.loads(content)
+        except ValueError:
+            continue
+        texts.extend(_card_texts(card))
+    joined = _WS_RE.sub(" ", " ".join(t for t in texts if t.strip())).strip()
+    if len(joined) > limit:
+        joined = joined[:limit].rstrip() + "..."
+    return joined or None
+
+
 def trim_chat_message(raw: dict, *, include_body: bool, include_raw: bool) -> dict:
     body = raw.get("body") or {}
     from_user = raw.get("from") or {}
     content = body.get("content")
     content_type = body.get("contentType")
-    attachments = [
-        {
+    raw_attachments = list(raw.get("attachments") or [])
+    attachments = []
+    for a in raw_attachments:
+        entry = {
             "id": a.get("id"),
             "name": a.get("name"),
             "content_type": a.get("contentType"),
             "content_url": a.get("contentUrl"),
         }
-        for a in (raw.get("attachments") or [])
-    ]
+        if include_body:
+            entry["content"] = a.get("content")
+        attachments.append(entry)
     mentions = [m.get("mentionText") for m in (raw.get("mentions") or []) if m.get("mentionText")]
     trimmed: dict[str, Any] = {
         "id": raw.get("id"),
@@ -260,7 +297,9 @@ def trim_chat_message(raw: dict, *, include_body: bool, include_raw: bool) -> di
         "deleted": raw.get("deletedDateTime") is not None,
         "importance": raw.get("importance") or "normal",
         "subject": raw.get("subject"),
-        "snippet": _html_to_snippet(content, content_type),
+        # Bot/app posts often have a body that is just an <attachment> tag;
+        # fall back to the card attachments' text so the snippet stays useful.
+        "snippet": _html_to_snippet(content, content_type) or _card_snippet(raw_attachments),
         "body_type": content_type or "text",
         "attachments": attachments,
         "mentions": mentions,

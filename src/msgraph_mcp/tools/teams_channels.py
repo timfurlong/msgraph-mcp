@@ -115,8 +115,9 @@ async def list_channel_messages(
         channel_id: Graph channel id (from list_channels).
         limit: 1-50 (Graph caps channel message pages at 50). Default 25.
         page_token: Continuation token from a previous result.
-        include_body: When True, include each message's full body. Default
-            False (snippet only).
+        include_body: When True, include each message's full body and any
+            attachment card payloads (e.g. Adaptive Card JSON for bot posts).
+            Default False (snippet only; card text still feeds the snippet).
         include_raw: Include the raw Graph payload under "raw" on each item.
 
     Returns:
@@ -156,7 +157,8 @@ async def list_message_replies(
         message_id: Graph id of the root channel message (from list_channel_messages).
         limit: 1-50 (Graph caps reply pages at 50). Default 25.
         page_token: Continuation token from a previous result.
-        include_body: When True, include each reply's full body. Default False.
+        include_body: When True, include each reply's full body and any
+            attachment card payloads. Default False (snippet only).
         include_raw: Include the raw Graph payload under "raw" on each item.
 
     Returns:

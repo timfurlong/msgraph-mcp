@@ -93,8 +93,9 @@ async def list_chat_messages(
         chat_id: Graph chat id (from list_chats).
         limit: 1-100. Default 25.
         page_token: Continuation token from a previous result.
-        include_body: When True, include each message's full body. Default
-            False (snippet only).
+        include_body: When True, include each message's full body and any
+            attachment card payloads (e.g. Adaptive Card JSON for bot posts).
+            Default False (snippet only; card text still feeds the snippet).
         include_raw: Include the raw Graph payload under "raw" on each item.
 
     Returns:

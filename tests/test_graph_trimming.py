@@ -269,6 +269,39 @@ def test_trim_chat_message_extracts_hosted_content_ids():
     assert t["hosted_content_refs"] == [{"hosted_content_id": "abc123"}]
 
 
+def _raw_card_message():
+    card = ('{"type": "AdaptiveCard", "body": ['
+            '{"type": "TextBlock", "text": "Access issue detected"},'
+            '{"type": "TextBlock", "text": "User bob@example.com locked out"}]}')
+    return _raw_chat_message(
+        body={"contentType": "html", "content": '<attachment id="a1"></attachment>'},
+        attachments=[{
+            "id": "a1",
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "contentUrl": None,
+            "name": None,
+            "content": card,
+        }],
+    )
+
+
+def test_trim_chat_message_card_snippet_falls_back_to_attachment_text():
+    # Bot/app posts have a body that is just an <attachment> tag; the snippet
+    # must surface the Adaptive Card's text instead of coming back empty.
+    t = trim_chat_message(_raw_card_message(), include_body=False, include_raw=False)
+    assert t["snippet"] == "Access issue detected User bob@example.com locked out"
+
+
+def test_trim_chat_message_include_body_carries_card_content():
+    t = trim_chat_message(_raw_card_message(), include_body=True, include_raw=False)
+    assert '"Access issue detected"' in t["attachments"][0]["content"]
+
+
+def test_trim_chat_message_attachment_content_omitted_without_include_body():
+    t = trim_chat_message(_raw_card_message(), include_body=False, include_raw=False)
+    assert "content" not in t["attachments"][0]
+
+
 def test_trim_chat_message_deleted_flag():
     raw = _raw_chat_message(deletedDateTime="2026-07-02T00:00:00Z")
     t = trim_chat_message(raw, include_body=False, include_raw=False)

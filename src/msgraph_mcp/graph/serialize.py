@@ -256,6 +256,10 @@ def _chat_attachment_to_dict(att: Any) -> dict:
         "contentType": getattr(att, "content_type", None),
         "contentUrl": getattr(att, "content_url", None),
         "name": getattr(att, "name", None),
+        # For card attachments (e.g. application/vnd.microsoft.card.adaptive)
+        # this carries the card payload as a JSON string — often the entire
+        # message content for app/bot posts.
+        "content": getattr(att, "content", None),
     }
 
 
