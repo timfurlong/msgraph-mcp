@@ -6,8 +6,8 @@ get_access_token raises NotAuthenticatedError pointing at the login CLI.
 
 from __future__ import annotations
 
-from outlook_mcp import config
-from outlook_mcp.auth.msal_app import build_app, persist_cache
+from msgraph_mcp import config
+from msgraph_mcp.auth.msal_app import build_app, persist_cache
 
 
 class NotAuthenticatedError(RuntimeError):
@@ -15,7 +15,7 @@ class NotAuthenticatedError(RuntimeError):
 
 
 _LOGIN_HINT = (
-    "Not authenticated. Run `outlook-mcp-login` in a terminal to sign in."
+    "Not authenticated. Run `msgraph-mcp-login` in a terminal to sign in."
 )
 
 

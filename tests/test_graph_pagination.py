@@ -1,6 +1,6 @@
 import pytest
 
-from outlook_mcp.graph import pagination
+from msgraph_mcp.graph import pagination
 
 
 def test_encode_decode_roundtrip():
@@ -42,22 +42,22 @@ def test_validate_limit_rejects_out_of_range():
 
 
 def test_validate_limit_custom_maximum_accepts_boundary():
-    from outlook_mcp.graph.pagination import validate_limit
+    from msgraph_mcp.graph.pagination import validate_limit
     assert validate_limit(50, maximum=50) == 50
 
 
 def test_validate_limit_custom_maximum_rejects_over():
     import pytest
-    from outlook_mcp.graph.errors import GraphValidationError
-    from outlook_mcp.graph.pagination import validate_limit
+    from msgraph_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.pagination import validate_limit
     with pytest.raises(GraphValidationError):
         validate_limit(51, maximum=50)
 
 
 def test_validate_limit_default_maximum_still_100():
     import pytest
-    from outlook_mcp.graph.errors import GraphValidationError
-    from outlook_mcp.graph.pagination import validate_limit
+    from msgraph_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.pagination import validate_limit
     assert validate_limit(100) == 100
     with pytest.raises(GraphValidationError):
         validate_limit(101)

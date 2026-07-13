@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from msgraph.graph_service_client import GraphServiceClient
 
-from outlook_mcp import config
-from outlook_mcp.graph.auth_provider import MsalTokenCredential
+from msgraph_mcp import config
+from msgraph_mcp.graph.auth_provider import MsalTokenCredential
 
 
 class GraphClient:

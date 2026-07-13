@@ -1,4 +1,4 @@
-"""Configuration loading for outlook_mcp.
+"""Configuration loading for msgraph_mcp.
 
 Env vars are read once at import-side via require_env. Values are sourced from
 the process environment with .env as a fallback (process wins via override=False).
@@ -32,15 +32,27 @@ SCOPES: list[str] = [
 ]
 
 
-DEFAULT_CACHE_PATH = Path.home() / ".outlook-mcp" / "token_cache.bin"
+DEFAULT_CACHE_PATH = Path.home() / ".msgraph-mcp" / "token_cache.bin"
+
+# Pre-rename (outlook-mcp) locations, honored so existing setups keep working.
+LEGACY_CACHE_PATH = Path.home() / ".outlook-mcp" / "token_cache.bin"
+_LEGACY_ENV_PREFIX = "OUTLOOK_MCP_"
 
 
 class ConfigError(RuntimeError):
     """Raised when required configuration is missing or invalid."""
 
 
-def require_env(name: str) -> str:
+def _env(name: str) -> str | None:
+    """Read an MSGRAPH_MCP_* env var, falling back to its legacy OUTLOOK_MCP_* name."""
     value = os.environ.get(name)
+    if value:
+        return value
+    return os.environ.get(name.replace("MSGRAPH_MCP_", _LEGACY_ENV_PREFIX, 1))
+
+
+def require_env(name: str) -> str:
+    value = _env(name)
     if not value:
         raise ConfigError(
             f"Missing required env var: {name}. "
@@ -50,16 +62,18 @@ def require_env(name: str) -> str:
 
 
 def token_cache_path() -> Path:
-    override = os.environ.get("OUTLOOK_MCP_TOKEN_CACHE_PATH")
+    override = _env("MSGRAPH_MCP_TOKEN_CACHE_PATH")
     if override:
         return Path(override).expanduser()
+    if not DEFAULT_CACHE_PATH.exists() and LEGACY_CACHE_PATH.exists():
+        return LEGACY_CACHE_PATH
     return DEFAULT_CACHE_PATH
 
 
 def authority() -> str:
-    tenant = require_env("OUTLOOK_MCP_TENANT_ID")
+    tenant = require_env("MSGRAPH_MCP_TENANT_ID")
     return f"https://login.microsoftonline.com/{tenant}"
 
 
 def client_id() -> str:
-    return require_env("OUTLOOK_MCP_CLIENT_ID")
+    return require_env("MSGRAPH_MCP_CLIENT_ID")

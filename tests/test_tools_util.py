@@ -2,9 +2,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import GraphAPIError
-from outlook_mcp.tools import util as util_tools
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import GraphAPIError
+from msgraph_mcp.tools import util as util_tools
 
 
 @pytest.mark.asyncio

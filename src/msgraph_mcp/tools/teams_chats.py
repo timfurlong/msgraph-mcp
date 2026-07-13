@@ -8,11 +8,11 @@ from msgraph.generated.chats.item.messages.messages_request_builder import (
     MessagesRequestBuilder as ChatMessagesRequestBuilder,
 )
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import map_kiota_error
-from outlook_mcp.graph.pagination import decode_page_token, encode_next_link, validate_limit
-from outlook_mcp.graph.serialize import chat_message_to_dict, chat_to_dict
-from outlook_mcp.graph.trimming import trim_chat, trim_chat_message
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import map_kiota_error
+from msgraph_mcp.graph.pagination import decode_page_token, encode_next_link, validate_limit
+from msgraph_mcp.graph.serialize import chat_message_to_dict, chat_to_dict
+from msgraph_mcp.graph.trimming import trim_chat, trim_chat_message
 
 
 def _list_chats_query(*, limit: int):

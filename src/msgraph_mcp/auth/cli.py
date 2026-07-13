@@ -1,11 +1,11 @@
-"""outlook-mcp-login entry point: runs the device code flow interactively."""
+"""msgraph-mcp-login entry point: runs the device code flow interactively."""
 
 from __future__ import annotations
 
 import sys
 
-from outlook_mcp import config
-from outlook_mcp.auth.msal_app import build_app, persist_cache
+from msgraph_mcp import config
+from msgraph_mcp.auth.msal_app import build_app, persist_cache
 
 
 def run_login() -> int:

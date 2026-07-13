@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.graph.batch import BatchRequest, BatchResult, BatchTransport, GraphBatchTransport, execute_batch
+from msgraph_mcp.graph.batch import BatchRequest, BatchResult, BatchTransport, GraphBatchTransport, execute_batch
 
 
 def test_batch_request_dataclass_defaults():

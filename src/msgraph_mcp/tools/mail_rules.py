@@ -13,10 +13,10 @@ from msgraph.generated.models.message_rule_actions import MessageRuleActions
 from msgraph.generated.models.message_rule_predicates import MessageRulePredicates
 from msgraph.generated.models.recipient import Recipient
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import GraphValidationError, map_kiota_error
-from outlook_mcp.graph.serialize import message_rule_to_dict
-from outlook_mcp.graph.trimming import trim_message_rule
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import GraphValidationError, map_kiota_error
+from msgraph_mcp.graph.serialize import message_rule_to_dict
+from msgraph_mcp.graph.trimming import trim_message_rule
 
 
 def _rules_endpoint(graph, mailbox: str | None):

@@ -13,7 +13,7 @@ import time
 
 from azure.core.credentials import AccessToken, TokenCredential
 
-from outlook_mcp.auth.token import get_access_token
+from msgraph_mcp.auth.token import get_access_token
 
 
 # Short expiry: MSAL's cache handles real refresh. Each get_token call goes

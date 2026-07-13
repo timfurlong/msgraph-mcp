@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
-from outlook_mcp.graph import serialize
-from outlook_mcp.graph.serialize import (
+from msgraph_mcp.graph import serialize
+from msgraph_mcp.graph.serialize import (
     chat_message_to_dict,
     chat_to_dict,
     team_to_dict,

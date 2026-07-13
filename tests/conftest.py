@@ -1,4 +1,4 @@
-"""Pytest config: gate live integration tests on OUTLOOK_MCP_INTEGRATION=1."""
+"""Pytest config: gate live integration tests on MSGRAPH_MCP_INTEGRATION=1."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ import pytest
 
 
 def pytest_collection_modifyitems(config, items):
-    if os.environ.get("OUTLOOK_MCP_INTEGRATION") == "1":
+    if os.environ.get("MSGRAPH_MCP_INTEGRATION") == "1":
         return
     skip_marker = pytest.mark.skip(
-        reason="set OUTLOOK_MCP_INTEGRATION=1 to run live integration tests"
+        reason="set MSGRAPH_MCP_INTEGRATION=1 to run live integration tests"
     )
     for item in items:
         if "tests/integration/" in str(item.fspath):

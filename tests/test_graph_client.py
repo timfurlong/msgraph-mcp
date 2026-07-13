@@ -1,13 +1,13 @@
 from unittest.mock import MagicMock, patch
 
-from outlook_mcp.graph import client as client_mod
+from msgraph_mcp.graph import client as client_mod
 
 
 def _make_client_with_fakes():
     fake_sdk = MagicMock()
     fake_sdk.me = MagicMock(name="me_builder")
     fake_sdk.users.by_user_id = MagicMock(return_value=MagicMock(name="users_builder"))
-    with patch("outlook_mcp.graph.client.GraphServiceClient", return_value=fake_sdk):
+    with patch("msgraph_mcp.graph.client.GraphServiceClient", return_value=fake_sdk):
         c = client_mod.GraphClient()
     return c, fake_sdk
 

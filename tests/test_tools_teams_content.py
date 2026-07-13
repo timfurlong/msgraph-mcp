@@ -2,8 +2,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.graph.errors import GraphValidationError
-from outlook_mcp.tools import teams_content
+from msgraph_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.tools import teams_content
 
 PNG = b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR"
 
@@ -103,7 +103,7 @@ def test_sniff_content_type(data, expected):
 
 @pytest.mark.asyncio
 async def test_download_maps_graph_error():
-    from outlook_mcp.graph.errors import GraphAPIError
+    from msgraph_mcp.graph.errors import GraphAPIError
 
     graph = MagicMock()
     content = _wire_chat(graph)

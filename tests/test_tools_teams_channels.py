@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.graph.errors import GraphValidationError
-from outlook_mcp.tools import teams_channels
+from msgraph_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.tools import teams_channels
 
 
 def _fake_collection(items, next_link=None):
@@ -110,7 +110,7 @@ async def test_list_channel_messages_page_token_uses_with_url():
     # Covers the shared _paged page-token branch used by all four channel tools:
     # a page_token must decode to a URL and route through builder.with_url(url).get(),
     # not the first-page builder.get(request_configuration=...) path.
-    from outlook_mcp.graph.pagination import encode_next_link
+    from msgraph_mcp.graph.pagination import encode_next_link
 
     graph = MagicMock()
     with_url = MagicMock()

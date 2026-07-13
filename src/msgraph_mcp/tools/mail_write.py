@@ -28,10 +28,10 @@ from msgraph.generated.users.item.send_mail.send_mail_post_request_body import (
     SendMailPostRequestBody,
 )
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import GraphValidationError, map_kiota_error
-from outlook_mcp.graph.serialize import message_to_dict
-from outlook_mcp.graph.trimming import trim_message
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import GraphValidationError, map_kiota_error
+from msgraph_mcp.graph.serialize import message_to_dict
+from msgraph_mcp.graph.trimming import trim_message
 
 
 _MAX_INLINE_ATTACHMENT_BYTES = 3 * 1024 * 1024

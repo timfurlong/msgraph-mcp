@@ -1,7 +1,7 @@
 from tests.fixtures import load
 
-from outlook_mcp.graph import trimming
-from outlook_mcp.graph.trimming import (
+from msgraph_mcp.graph import trimming
+from msgraph_mcp.graph.trimming import (
     trim_chat_message,
     trim_chat,
     trim_team,

@@ -36,15 +36,15 @@ from msgraph.generated.users.item.find_meeting_times.find_meeting_times_post_req
     FindMeetingTimesPostRequestBody,
 )
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import GraphValidationError, map_kiota_error
-from outlook_mcp.graph.pagination import (
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import GraphValidationError, map_kiota_error
+from msgraph_mcp.graph.pagination import (
     decode_page_token,
     encode_next_link,
     validate_limit,
 )
-from outlook_mcp.graph.serialize import calendar_to_dict, event_to_dict
-from outlook_mcp.graph.trimming import trim_calendar, trim_event
+from msgraph_mcp.graph.serialize import calendar_to_dict, event_to_dict
+from msgraph_mcp.graph.trimming import trim_calendar, trim_event
 
 
 _VALID_RESPONSES = {

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.tools import mail_folders
+from msgraph_mcp.tools import mail_folders
 
 
 def _fake_folder(id_="f1", name="Inbox"):
@@ -101,7 +101,7 @@ async def test_create_folder_child():
 
 @pytest.mark.asyncio
 async def test_create_folder_validates_empty_name():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -110,7 +110,7 @@ async def test_create_folder_validates_empty_name():
 
 @pytest.mark.asyncio
 async def test_create_folder_validates_whitespace_name():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -209,7 +209,7 @@ async def test_update_folder_rename_and_reparent():
 
 @pytest.mark.asyncio
 async def test_update_folder_requires_folder_id():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -220,7 +220,7 @@ async def test_update_folder_requires_folder_id():
 
 @pytest.mark.asyncio
 async def test_update_folder_requires_at_least_one_field():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError, match="At least one"):
@@ -229,7 +229,7 @@ async def test_update_folder_requires_at_least_one_field():
 
 @pytest.mark.asyncio
 async def test_update_folder_rejects_whitespace_name():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -250,7 +250,7 @@ async def test_delete_folder_empty_calls_delete():
 
 @pytest.mark.asyncio
 async def test_delete_folder_refuses_when_messages_present():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     folder = _empty_folder(id_="fid")
     folder.total_item_count = 3
@@ -262,7 +262,7 @@ async def test_delete_folder_refuses_when_messages_present():
 
 @pytest.mark.asyncio
 async def test_delete_folder_refuses_when_child_folders_present():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     folder = _empty_folder(id_="fid")
     folder.child_folder_count = 1
@@ -274,7 +274,7 @@ async def test_delete_folder_refuses_when_child_folders_present():
 
 @pytest.mark.asyncio
 async def test_delete_folder_requires_folder_id():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):

@@ -1,6 +1,8 @@
-# Outlook MCP
+# MSGraph MCP
 
-A Model Context Protocol (MCP) server that exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. Acts as the signed-in user (delegated permissions, MSAL device code flow).
+A Model Context Protocol (MCP) server for **Microsoft Graph**. It exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. Acts as the signed-in user (delegated permissions, MSAL device code flow).
+
+> Formerly published as `outlook-mcp`. Renamed because the scope grew beyond Outlook (Teams today, potentially other Graph surfaces later). Outlook mail and calendar remain first-class capabilities. See [Migrating from outlook-mcp](#migrating-from-outlook-mcp).
 
 ## What it does
 
@@ -37,23 +39,23 @@ uv sync
 
 # 2. Configure environment
 cp .env.example .env
-# Fill in OUTLOOK_MCP_CLIENT_ID and OUTLOOK_MCP_TENANT_ID
+# Fill in MSGRAPH_MCP_CLIENT_ID and MSGRAPH_MCP_TENANT_ID
 
 # 3. One-time sign-in (device code flow)
-uv run outlook-mcp-login
+uv run msgraph-mcp-login
 # Follow the prompt: visit the URL, enter the code, complete sign-in.
-# A token cache is written to ~/.outlook-mcp/token_cache.bin (mode 0600).
+# A token cache is written to ~/.msgraph-mcp/token_cache.bin (mode 0600).
 
 # 4. Wire the MCP into your host
 # - Claude Code:
-claude mcp add outlook -- uv --directory "$(pwd)" run outlook-mcp
+claude mcp add msgraph -- uv --directory "$(pwd)" run msgraph-mcp
 
-# - Anything else: configure the host to launch `uv run outlook-mcp` (stdio).
+# - Anything else: configure the host to launch `uv run msgraph-mcp` (stdio).
 ```
 
 ## Entra setup
 
-The app registration (e.g. "Outlook MCP") requires:
+The app registration (e.g. "MSGraph MCP") requires:
 
 - **Account type:** single tenant
 - **Redirect URI (public client):** `https://login.microsoftonline.com/common/oauth2/nativeclient`
@@ -71,7 +73,7 @@ The app registration (e.g. "Outlook MCP") requires:
   - `ChannelMessage.Read.All` (Teams)
 - Admin consent: required for `ChannelMessage.Read.All` (always), plus the `*.Shared` permissions if your tenant requires it.
 
-> If you signed in before any of these scopes were added to the app (for example `MailboxSettings.ReadWrite`, or the Teams scopes), re-run `uv run outlook-mcp-login` so the cached token picks up the new scopes. Without them, calls needing the missing scope fail with a consent error.
+> If you signed in before any of these scopes were added to the app (for example `MailboxSettings.ReadWrite`, or the Teams scopes), re-run `uv run msgraph-mcp-login` so the cached token picks up the new scopes. Without them, calls needing the missing scope fail with a consent error.
 
 The CLI uses public-client device code flow — **no client secret** is needed or stored.
 
@@ -79,18 +81,40 @@ The CLI uses public-client device code flow — **no client secret** is needed o
 
 | Var                            | Required | Default                          | Purpose                             |
 | ------------------------------ | -------- | -------------------------------- | ----------------------------------- |
-| `OUTLOOK_MCP_CLIENT_ID`        | yes      | —                                | Entra (Azure AD) app client ID      |
-| `OUTLOOK_MCP_TENANT_ID`        | yes      | —                                | Tenant ID (single-tenant authority) |
-| `OUTLOOK_MCP_TOKEN_CACHE_PATH` | no       | `~/.outlook-mcp/token_cache.bin` | Override token cache file location  |
+| `MSGRAPH_MCP_CLIENT_ID`        | yes      | —                                | Entra (Azure AD) app client ID      |
+| `MSGRAPH_MCP_TENANT_ID`        | yes      | —                                | Tenant ID (single-tenant authority) |
+| `MSGRAPH_MCP_TOKEN_CACHE_PATH` | no       | `~/.msgraph-mcp/token_cache.bin` | Override token cache file location  |
 
 Process env wins; `.env` at the repo root is loaded as a dev fallback.
 
+Legacy `OUTLOOK_MCP_*` names are honored as a fallback for each variable (the `MSGRAPH_MCP_*` name wins when both are set).
+
+## Migrating from outlook-mcp
+
+This project was named `outlook-mcp` through v0.2.0. What changed in the rename:
+
+| Old                                | New                                |
+| ---------------------------------- | ---------------------------------- |
+| package `outlook-mcp`              | package `msgraph-mcp`              |
+| module `outlook_mcp`               | module `msgraph_mcp`               |
+| `uv run outlook-mcp`               | `uv run msgraph-mcp`               |
+| `uv run outlook-mcp-login`         | `uv run msgraph-mcp-login`         |
+| `OUTLOOK_MCP_*` env vars           | `MSGRAPH_MCP_*` env vars           |
+| `~/.outlook-mcp/token_cache.bin`   | `~/.msgraph-mcp/token_cache.bin`   |
+
+Backward compatibility, so an existing setup keeps working without re-authenticating:
+
+- `OUTLOOK_MCP_*` env vars are still read as a fallback.
+- If `~/.msgraph-mcp/token_cache.bin` does not exist but `~/.outlook-mcp/token_cache.bin` does, the legacy cache is used. To move to the new location: `mv ~/.outlook-mcp ~/.msgraph-mcp`.
+
+You do need to update anything that launches the server by script name (MCP host configs): `outlook-mcp` → `msgraph-mcp`.
+
 ## Security
 
-- The token cache contains your **refresh token**, which can mint access tokens for your Outlook data. Treat it like a credential.
-- Default location: `~/.outlook-mcp/token_cache.bin`, mode `0600`, parent dir mode `0700`.
-- To **revoke** access: sign in to https://account.microsoft.com or your org's identity portal, revoke the "Outlook MCP" app, then `rm ~/.outlook-mcp/token_cache.bin`.
-- To **switch accounts**: `rm ~/.outlook-mcp/token_cache.bin` and re-run `outlook-mcp-login`.
+- The token cache contains your **refresh token**, which can mint access tokens for your mail, calendar, and Teams data. Treat it like a credential.
+- Default location: `~/.msgraph-mcp/token_cache.bin`, mode `0600`, parent dir mode `0700`.
+- To **revoke** access: sign in to https://account.microsoft.com or your org's identity portal, revoke the app, then `rm ~/.msgraph-mcp/token_cache.bin`.
+- To **switch accounts**: `rm ~/.msgraph-mcp/token_cache.bin` and re-run `msgraph-mcp-login`.
 
 ## Recipes
 
@@ -156,7 +180,7 @@ Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB)
 uv run pytest
 
 # Run unit + live integration smoke (requires a valid token cache)
-OUTLOOK_MCP_INTEGRATION=1 uv run pytest
+MSGRAPH_MCP_INTEGRATION=1 uv run pytest
 
 # Type check
 uv run pyright src tests
@@ -168,12 +192,12 @@ uv run ruff check .
 ## Troubleshooting
 
 | Symptom                                                                                                     | Fix                                                                                                                                                                                                                                                           |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NotAuthenticatedError: Not authenticated. Run \`outlook-mcp-login\`...`                                    | Run `uv run outlook-mcp-login`.                                                                                                                                                                                                                               |
-| `ConfigError: Missing required env var: OUTLOOK_MCP_CLIENT_ID`                                              | Set the var in `.env` or in your MCP host's env config.                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NotAuthenticatedError: Not authenticated. Run \`msgraph-mcp-login\`...`                                    | Run `uv run msgraph-mcp-login`.                                                                                                                                                                                                                               |
+| `ConfigError: Missing required env var: MSGRAPH_MCP_CLIENT_ID`                                              | Set the var in `.env` or in your MCP host's env config.                                                                                                                                                                                                       |
 | `Graph API 403: ErrorAccessDenied — ...`                                                                    | Permission mismatch on the Entra app. Verify the delegated permissions list above and re-consent.                                                                                                                                                             |
 | `Graph API 400: BadRequest — Syntax error: character ... is not valid at position N` from `search_messages` | The query is passed to Graph's `$search` as-is. Wrap literal/multi-character tokens in double quotes (e.g. `"weekly report"`), or use KQL fielded forms (e.g. `from:alice subject:"report"`). Bare alphanumeric strings with embedded digits are invalid KQL. |
-| Server boots but tools 404 in the host                                                                      | Confirm the host is launching `uv run outlook-mcp` with the right working directory.                                                                                                                                                                          |
+| Server boots but tools 404 in the host                                                                      | Confirm the host is launching `uv run msgraph-mcp` with the right working directory.                                                                                                                                                                          |
 
 ---
 

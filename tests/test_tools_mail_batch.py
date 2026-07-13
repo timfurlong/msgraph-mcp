@@ -2,9 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from outlook_mcp.graph.batch import BatchResult
-from outlook_mcp.graph.errors import GraphValidationError
-from outlook_mcp.tools import mail_batch
+from msgraph_mcp.graph.batch import BatchResult
+from msgraph_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.tools import mail_batch
 
 
 @pytest.mark.asyncio

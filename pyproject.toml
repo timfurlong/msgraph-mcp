@@ -1,7 +1,7 @@
 [project]
-name = "outlook-mcp"
-version = "0.2.0"
-description = "MCP server for Microsoft Outlook mail and calendar via msgraph-sdk"
+name = "msgraph-mcp"
+version = "0.3.0"
+description = "MCP server for Microsoft Graph: Outlook mail and calendar, plus read-only Microsoft Teams"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
@@ -13,15 +13,15 @@ dependencies = [
 ]
 
 [project.scripts]
-outlook-mcp = "outlook_mcp.server:main"
-outlook-mcp-login = "outlook_mcp.auth.cli:main"
+msgraph-mcp = "msgraph_mcp.server:main"
+msgraph-mcp-login = "msgraph_mcp.auth.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/outlook_mcp"]
+packages = ["src/msgraph_mcp"]
 
 [dependency-groups]
 dev = [
@@ -35,7 +35,7 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 # Integration tests are gated by tests/conftest.py — they skip unless
-# OUTLOOK_MCP_INTEGRATION=1 is set in the environment.
+# MSGRAPH_MCP_INTEGRATION=1 is set in the environment.
 #
 # msgraph-sdk and kiota_abstractions emit DeprecationWarnings on import for
 # nested *RequestConfiguration / GetQueryParameters classes whose generated

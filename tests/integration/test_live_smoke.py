@@ -1,9 +1,9 @@
 """Live integration smoke tests against the real mailbox + calendar.
 
-Gated behind OUTLOOK_MCP_INTEGRATION=1 via tests/conftest.py.
+Gated behind MSGRAPH_MCP_INTEGRATION=1 via tests/conftest.py.
 
-These tests require a valid token cache at ~/.outlook-mcp/token_cache.bin
-(run `outlook-mcp-login` first). They make real Graph calls and may
+These tests require a valid token cache at ~/.msgraph-mcp/token_cache.bin
+(run `msgraph-mcp-login` first). They make real Graph calls and may
 create/delete real items in your mailbox and a temporary calendar.
 """
 
@@ -14,10 +14,10 @@ import time
 
 import pytest
 
-from outlook_mcp.graph.client import GraphClient
-from outlook_mcp.tools import calendar as cal_tools
-from outlook_mcp.tools import mail_read, mail_write
-from outlook_mcp.tools import util as util_tools
+from msgraph_mcp.graph.client import GraphClient
+from msgraph_mcp.tools import calendar as cal_tools
+from msgraph_mcp.tools import mail_read, mail_write
+from msgraph_mcp.tools import util as util_tools
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ async def test_event_create_get_delete_roundtrip(graph):
 
     start = dt.datetime.now(dt.UTC).replace(microsecond=0, tzinfo=None) + dt.timedelta(days=365)
     end = start + dt.timedelta(minutes=15)
-    subject = f"Outlook MCP smoke {int(time.time())}"
+    subject = f"MSGraph MCP smoke {int(time.time())}"
 
     created = await cal_tools.create_event(
         graph=graph,
@@ -87,7 +87,7 @@ async def test_send_to_self_search_and_delete(graph):
     # rather than KQL (a bare alphanumeric token with embedded digits is
     # invalid KQL syntax).
     token = f"MCPSMOKE{int(time.time())}"
-    subject = f"Outlook MCP smoke msg {token}"
+    subject = f"MSGraph MCP smoke msg {token}"
     sent = await mail_write.send_message(
         graph=graph,
         to=[me["mail"]],

@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.graph.errors import GraphValidationError
-from outlook_mcp.tools import mail_write
+from msgraph_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.tools import mail_write
 
 
 def _b64(data: bytes) -> str:

@@ -6,7 +6,7 @@ import os
 
 import msal
 
-from outlook_mcp import config
+from msgraph_mcp import config
 
 
 def build_app() -> tuple[msal.PublicClientApplication, msal.SerializableTokenCache]:

@@ -7,8 +7,8 @@ intents like 'archive this' or 'mark as read'.
 
 from __future__ import annotations
 
-from outlook_mcp.tools.mail_folders import move_message
-from outlook_mcp.tools.mail_write import update_message
+from msgraph_mcp.tools.mail_folders import move_message
+from msgraph_mcp.tools.mail_write import update_message
 
 
 async def archive_message(

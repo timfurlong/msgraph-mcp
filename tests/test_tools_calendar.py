@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.graph.errors import GraphValidationError
-from outlook_mcp.tools import calendar as cal_tools
+from msgraph_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.tools import calendar as cal_tools
 
 
 def _fake_calendar(id_="c1", name="Calendar"):

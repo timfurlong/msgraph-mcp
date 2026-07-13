@@ -1,7 +1,7 @@
 """Live end-to-end: create folder + rule, list, then clean up.
 
-Skipped unless OUTLOOK_MCP_INTEGRATION=1 (see tests/conftest.py).
-Requires a configured signed-in user (run `uv run outlook-mcp-login` first).
+Skipped unless MSGRAPH_MCP_INTEGRATION=1 (see tests/conftest.py).
+Requires a configured signed-in user (run `uv run msgraph-mcp-login` first).
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ import uuid
 
 import pytest
 
-from outlook_mcp.graph.client import GraphClient
-from outlook_mcp.tools import mail_folders, mail_rules
+from msgraph_mcp.graph.client import GraphClient
+from msgraph_mcp.tools import mail_folders, mail_rules
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ async def test_delete_folder_refuses_non_empty(graph):
     Create a parent folder + a child folder, attempt to delete the parent,
     expect GraphValidationError, then clean up child + parent in order.
     """
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     parent_name = f"mcp-test-parent-{uuid.uuid4().hex[:8]}"
     child_name = f"mcp-test-child-{uuid.uuid4().hex[:8]}"

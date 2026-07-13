@@ -826,6 +826,41 @@ wheels = [
 ]
 
 [[package]]
+name = "msgraph-mcp"
+version = "0.3.0"
+source = { editable = "." }
+dependencies = [
+    { name = "mcp" },
+    { name = "msal" },
+    { name = "msgraph-sdk" },
+    { name = "python-dotenv" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mcp", specifier = ">=1.0" },
+    { name = "msal", specifier = ">=1.31" },
+    { name = "msgraph-sdk", specifier = ">=1.0" },
+    { name = "python-dotenv", specifier = ">=1.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.380" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+    { name = "ruff", specifier = ">=0.6" },
+]
+
+[[package]]
 name = "msgraph-sdk"
 version = "1.57.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1005,41 +1040,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/20/f8/be4625838aae098c2f9fbdc062a1b3128ebb9e799b891b654ee8cad94897/opentelemetry_semantic_conventions-0.63b0.tar.gz", hash = "sha256:cfea295264654fa324fcef24aa56fb1836fdc0da27db128645dc6aa76115cc6c", size = 148333, upload-time = "2026-05-19T09:46:44.01Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/6f/8d0ce225b8fdbb72c97cf4130107d861eafcb3d8e5c3f5891e8556177316/opentelemetry_semantic_conventions-0.63b0-py3-none-any.whl", hash = "sha256:1f3962732b04f43e4fef28173c9a3615b8847b4b2d6386fdc085361b29875ab9", size = 203712, upload-time = "2026-05-19T09:46:27.569Z" },
-]
-
-[[package]]
-name = "outlook-mcp"
-version = "0.2.0"
-source = { editable = "." }
-dependencies = [
-    { name = "mcp" },
-    { name = "msal" },
-    { name = "msgraph-sdk" },
-    { name = "python-dotenv" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "mcp", specifier = ">=1.0" },
-    { name = "msal", specifier = ">=1.31" },
-    { name = "msgraph-sdk", specifier = ">=1.0" },
-    { name = "python-dotenv", specifier = ">=1.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.380" },
-    { name = "pytest", specifier = ">=8" },
-    { name = "pytest-asyncio", specifier = ">=0.24" },
-    { name = "ruff", specifier = ">=0.6" },
 ]
 
 [[package]]

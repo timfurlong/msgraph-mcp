@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from outlook_mcp.graph import errors
+from msgraph_mcp.graph import errors
 
 
 def test_graph_validation_error_is_runtime_error():

@@ -16,11 +16,11 @@ from msgraph.generated.users.item.joined_teams.joined_teams_request_builder impo
     JoinedTeamsRequestBuilder,
 )
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import map_kiota_error
-from outlook_mcp.graph.pagination import decode_page_token, encode_next_link, validate_limit
-from outlook_mcp.graph.serialize import channel_to_dict, chat_message_to_dict, team_to_dict
-from outlook_mcp.graph.trimming import trim_channel, trim_chat_message, trim_team
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import map_kiota_error
+from msgraph_mcp.graph.pagination import decode_page_token, encode_next_link, validate_limit
+from msgraph_mcp.graph.serialize import channel_to_dict, chat_message_to_dict, team_to_dict
+from msgraph_mcp.graph.trimming import trim_channel, trim_chat_message, trim_team
 
 _CHANNEL_MSG_MAX = 50
 

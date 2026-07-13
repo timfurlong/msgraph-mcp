@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from outlook_mcp.auth import cli
+from msgraph_mcp.auth import cli
 
 
 def _setup_fakes(monkeypatch, *, init_flow=None, acquire_result=None):

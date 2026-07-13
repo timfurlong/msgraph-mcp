@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.graph.errors import GraphValidationError
-from outlook_mcp.tools import mail_read
+from msgraph_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.tools import mail_read
 
 
 def _fake_message(*, id_="m1", subject="Hi"):

@@ -6,7 +6,7 @@ exposes a register(mcp, *, graph) function so we can keep modules small.
 
 from __future__ import annotations
 
-from outlook_mcp.tools import (
+from msgraph_mcp.tools import (
     calendar,
     mail_actions,
     mail_batch,

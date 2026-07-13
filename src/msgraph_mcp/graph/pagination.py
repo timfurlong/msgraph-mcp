@@ -10,7 +10,7 @@ import base64
 import binascii
 from urllib.parse import urlparse
 
-from outlook_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.graph.errors import GraphValidationError
 
 
 _ALLOWED_HOSTS = {"graph.microsoft.com"}

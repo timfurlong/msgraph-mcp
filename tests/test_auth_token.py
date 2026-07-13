@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from outlook_mcp.auth import token as token_mod
+from msgraph_mcp.auth import token as token_mod
 
 
 def test_get_access_token_returns_token_when_silent_succeeds(monkeypatch):
@@ -25,7 +25,7 @@ def test_get_access_token_raises_when_no_accounts(monkeypatch):
 
     with pytest.raises(token_mod.NotAuthenticatedError) as exc:
         token_mod.get_access_token()
-    assert "outlook-mcp-login" in str(exc.value)
+    assert "msgraph-mcp-login" in str(exc.value)
 
 
 def test_get_access_token_raises_when_silent_returns_none(monkeypatch):

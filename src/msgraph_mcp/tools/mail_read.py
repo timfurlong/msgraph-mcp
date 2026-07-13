@@ -10,18 +10,18 @@ from msgraph.generated.users.item.messages.messages_request_builder import (
     MessagesRequestBuilder,
 )
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import map_kiota_error
-from outlook_mcp.graph.pagination import (
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import map_kiota_error
+from msgraph_mcp.graph.pagination import (
     decode_page_token,
     encode_next_link,
     validate_limit,
 )
-from outlook_mcp.graph.serialize import (
+from msgraph_mcp.graph.serialize import (
     attachment_to_dict,
     message_to_dict,
 )
-from outlook_mcp.graph.trimming import (
+from msgraph_mcp.graph.trimming import (
     trim_attachment_download,
     trim_attachment_list,
     trim_message,

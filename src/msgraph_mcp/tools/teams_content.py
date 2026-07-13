@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import base64
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import GraphValidationError, map_kiota_error
-from outlook_mcp.graph.trimming import trim_hosted_content_download
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import GraphValidationError, map_kiota_error
+from msgraph_mcp.graph.trimming import trim_hosted_content_download
 
 
 def _sniff_content_type(data: bytes) -> str | None:

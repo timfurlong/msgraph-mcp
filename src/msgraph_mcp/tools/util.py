@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from outlook_mcp.auth.token import NotAuthenticatedError
-from outlook_mcp.graph.errors import map_kiota_error
-from outlook_mcp.graph.serialize import user_to_dict
-from outlook_mcp.graph.trimming import trim_user
+from msgraph_mcp.auth.token import NotAuthenticatedError
+from msgraph_mcp.graph.errors import map_kiota_error
+from msgraph_mcp.graph.serialize import user_to_dict
+from msgraph_mcp.graph.trimming import trim_user
 
 
 async def whoami(*, graph, include_raw: bool = False) -> dict:

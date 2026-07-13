@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.tools import mail_rules
+from msgraph_mcp.tools import mail_rules
 
 
 def _fake_rule(id_="rule-1", name="r", enabled=True):
@@ -62,7 +62,7 @@ async def test_get_rule_returns_trimmed_rule():
 
 @pytest.mark.asyncio
 async def test_get_rule_requires_rule_id():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -113,7 +113,7 @@ async def test_create_rule_with_from_addresses():
 
 @pytest.mark.asyncio
 async def test_create_rule_requires_display_name():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -122,7 +122,7 @@ async def test_create_rule_requires_display_name():
 
 @pytest.mark.asyncio
 async def test_create_rule_requires_at_least_one_condition():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -133,7 +133,7 @@ async def test_create_rule_requires_at_least_one_condition():
 
 @pytest.mark.asyncio
 async def test_create_rule_requires_at_least_one_action():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -144,7 +144,7 @@ async def test_create_rule_requires_at_least_one_action():
 
 @pytest.mark.asyncio
 async def test_create_rule_rejects_whitespace_display_name():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -155,7 +155,7 @@ async def test_create_rule_rejects_whitespace_display_name():
 
 @pytest.mark.asyncio
 async def test_create_rule_rejects_invalid_from_address():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError, match="Invalid email address"):
@@ -235,7 +235,7 @@ async def test_update_rule_replaces_actions_block():
 
 @pytest.mark.asyncio
 async def test_update_rule_requires_rule_id():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -244,7 +244,7 @@ async def test_update_rule_requires_rule_id():
 
 @pytest.mark.asyncio
 async def test_update_rule_requires_at_least_one_field():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError, match="At least one field"):
@@ -253,7 +253,7 @@ async def test_update_rule_requires_at_least_one_field():
 
 @pytest.mark.asyncio
 async def test_update_rule_rejects_whitespace_display_name():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
@@ -276,7 +276,7 @@ async def test_delete_rule_calls_delete_endpoint():
 
 @pytest.mark.asyncio
 async def test_delete_rule_requires_rule_id():
-    from outlook_mcp.graph.errors import GraphValidationError
+    from msgraph_mcp.graph.errors import GraphValidationError
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):

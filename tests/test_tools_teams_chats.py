@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from outlook_mcp.graph.errors import GraphValidationError
-from outlook_mcp.tools import teams_chats
+from msgraph_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.tools import teams_chats
 
 
 def _fake_collection(items, next_link=None):
@@ -66,7 +66,7 @@ async def test_list_chats_paginates_with_page_token():
     with_url.get = AsyncMock(return_value=_fake_collection([_fake_chat()], next_link=None))
     graph.raw.me.chats.with_url = MagicMock(return_value=with_url)
     # A valid token is base64url of a graph.microsoft.com URL.
-    from outlook_mcp.graph.pagination import encode_next_link
+    from msgraph_mcp.graph.pagination import encode_next_link
     token = encode_next_link("https://graph.microsoft.com/v1.0/me/chats?$skip=25")
 
     result = await teams_chats.list_chats(graph=graph, page_token=token)

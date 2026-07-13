@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from outlook_mcp.graph.batch import (
+from msgraph_mcp.graph.batch import (
     BatchRequest,
     BatchResult,
     GraphBatchTransport,
     execute_batch,
 )
-from outlook_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.graph.errors import GraphValidationError
 
 MAX_BATCH_IDS = 1000
 
@@ -93,7 +93,7 @@ async def batch_move_messages(
     Spec deviation: Spec §6.3 calls for pre-resolving well-known names to
     folder ids. In practice Graph's /move endpoint accepts well-known names
     directly (this is how the existing single-message move_message already
-    works — see src/outlook_mcp/tools/mail_folders.py). We pass through
+    works — see src/msgraph_mcp/tools/mail_folders.py). We pass through
     unchanged. If a real-world test surfaces a case where Graph rejects a
     well-known name in $batch but accepts it in single calls, add resolution
     then.

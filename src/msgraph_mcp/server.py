@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
-from outlook_mcp import config
-from outlook_mcp.graph.client import GraphClient
-from outlook_mcp.tools import register_all
+from msgraph_mcp import config
+from msgraph_mcp.graph.client import GraphClient
+from msgraph_mcp.tools import register_all
 
 
 _INSTRUCTIONS = """
@@ -43,7 +43,7 @@ def build_server() -> FastMCP:
     config.client_id()
     config.authority()
 
-    mcp = FastMCP(name="outlook-mcp", instructions=_INSTRUCTIONS)
+    mcp = FastMCP(name="msgraph-mcp", instructions=_INSTRUCTIONS)
     graph = GraphClient()
     register_all(mcp, graph=graph)
     return mcp
