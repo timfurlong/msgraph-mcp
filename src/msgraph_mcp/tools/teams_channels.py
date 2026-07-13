@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 from kiota_abstractions.base_request_configuration import RequestConfiguration
-from msgraph.generated.teams.item.channels.channels_request_builder import (
-    ChannelsRequestBuilder,
-)
 from msgraph.generated.teams.item.channels.item.messages.messages_request_builder import (
     MessagesRequestBuilder as ChannelMessagesRequestBuilder,
 )
@@ -19,13 +16,6 @@ from msgraph_mcp.graph.serialize import channel_to_dict, chat_message_to_dict, t
 from msgraph_mcp.graph.trimming import trim_channel, trim_chat_message, trim_team
 
 _CHANNEL_MSG_MAX = 50
-
-
-def _channels_query(*, limit: int):
-    qp = ChannelsRequestBuilder.ChannelsRequestBuilderGetQueryParameters(top=limit)
-    return RequestConfiguration[
-        ChannelsRequestBuilder.ChannelsRequestBuilderGetQueryParameters
-    ](query_parameters=qp)
 
 
 def _channel_messages_query(*, limit: int):
@@ -84,7 +74,8 @@ async def list_channels(
 
     Args:
         team_id: Graph team id (from list_joined_teams).
-        limit: 1-100. Default 25.
+        limit: 1-100. Default 25. Applied client-side (see below); channels
+            beyond the limit are dropped.
         page_token: Continuation token from a previous result.
         include_raw: Include the raw Graph payload under "raw" on each item.
 
@@ -94,12 +85,14 @@ async def list_channels(
     limit = validate_limit(limit)
     builder = graph.raw.teams.by_team_id(team_id).channels
     try:
-        collection = await _paged(builder, page_token=page_token, request_configuration=_channels_query(limit=limit))
+        # /teams/{id}/channels rejects $top ("Query option 'Top' is not
+        # allowed"), so fetch unpaged and cap client-side.
+        collection = await _paged(builder, page_token=page_token, request_configuration=None)
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    items = [trim_channel(channel_to_dict(c), include_raw=include_raw) for c in (collection.value or [])]
+    items = [trim_channel(channel_to_dict(c), include_raw=include_raw) for c in (collection.value or [])[:limit]]
     return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
 
 

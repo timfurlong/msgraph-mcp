@@ -60,6 +60,27 @@ async def test_list_joined_teams_caps_results_client_side():
 
 
 @pytest.mark.asyncio
+async def test_list_channels_sends_no_query_params():
+    # /teams/{id}/channels rejects $top, so the request must carry no query params.
+    graph = MagicMock()
+    channels = MagicMock()
+    channels.get = AsyncMock(return_value=_fake_collection([_fake_channel()]))
+    graph.raw.teams.by_team_id = MagicMock(return_value=MagicMock(channels=channels))
+    await teams_channels.list_channels(graph=graph, team_id="t1", limit=5)
+    channels.get.assert_awaited_once_with(request_configuration=None)
+
+
+@pytest.mark.asyncio
+async def test_list_channels_caps_results_client_side():
+    graph = MagicMock()
+    channels = MagicMock()
+    channels.get = AsyncMock(return_value=_fake_collection([_fake_channel() for _ in range(4)]))
+    graph.raw.teams.by_team_id = MagicMock(return_value=MagicMock(channels=channels))
+    result = await teams_channels.list_channels(graph=graph, team_id="t1", limit=2)
+    assert len(result["items"]) == 2
+
+
+@pytest.mark.asyncio
 async def test_list_channels_routes_by_team_id():
     graph = MagicMock()
     channels = MagicMock()
