@@ -12,10 +12,6 @@ from msgraph.generated.teams.item.channels.item.messages.messages_request_builde
 from msgraph.generated.teams.item.channels.item.messages.item.replies.replies_request_builder import (
     RepliesRequestBuilder,
 )
-from msgraph.generated.users.item.joined_teams.joined_teams_request_builder import (
-    JoinedTeamsRequestBuilder,
-)
-
 from msgraph_mcp.auth.token import NotAuthenticatedError
 from msgraph_mcp.graph.errors import map_kiota_error
 from msgraph_mcp.graph.pagination import decode_page_token, encode_next_link, validate_limit
@@ -23,13 +19,6 @@ from msgraph_mcp.graph.serialize import channel_to_dict, chat_message_to_dict, t
 from msgraph_mcp.graph.trimming import trim_channel, trim_chat_message, trim_team
 
 _CHANNEL_MSG_MAX = 50
-
-
-def _joined_teams_query(*, limit: int):
-    qp = JoinedTeamsRequestBuilder.JoinedTeamsRequestBuilderGetQueryParameters(top=limit)
-    return RequestConfiguration[
-        JoinedTeamsRequestBuilder.JoinedTeamsRequestBuilderGetQueryParameters
-    ](query_parameters=qp)
 
 
 def _channels_query(*, limit: int):
@@ -66,7 +55,8 @@ async def list_joined_teams(
     """List the teams the signed-in user is a member of.
 
     Args:
-        limit: 1-100. Default 25.
+        limit: 1-100. Default 25. Applied client-side (see below); teams
+            beyond the limit are dropped.
         page_token: Continuation token from a previous result.
         include_raw: Include the raw Graph payload under "raw" on each item.
 
@@ -76,12 +66,14 @@ async def list_joined_teams(
     limit = validate_limit(limit)
     builder = graph.raw.me.joined_teams
     try:
-        collection = await _paged(builder, page_token=page_token, request_configuration=_joined_teams_query(limit=limit))
+        # /me/joinedTeams rejects $top ("Query option 'Top' is not allowed"),
+        # so fetch unpaged and cap client-side.
+        collection = await _paged(builder, page_token=page_token, request_configuration=None)
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    items = [trim_team(team_to_dict(t), include_raw=include_raw) for t in (collection.value or [])]
+    items = [trim_team(team_to_dict(t), include_raw=include_raw) for t in (collection.value or [])[:limit]]
     return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
 
 
