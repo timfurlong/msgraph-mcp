@@ -1,6 +1,9 @@
+import base64
+import pathlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from mcp.server.fastmcp.utilities.types import Image
 
 from msgraph_mcp.graph.errors import GraphValidationError
 from msgraph_mcp.tools import teams_content
@@ -37,15 +40,31 @@ def _wire_channel(graph, data=PNG):
 
 
 @pytest.mark.asyncio
-async def test_download_from_chat_returns_base64_and_sniffs_png():
+async def test_download_image_from_chat_returns_image_content():
     graph = MagicMock()
     _wire_chat(graph)
     result = await teams_content.download_hosted_content(
         graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1"
     )
-    assert result["content_type"] == "image/png"
-    assert result["size_bytes"] == len(PNG)
-    assert result["content_base64"] is not None
+    assert isinstance(result, list) and len(result) == 2
+    meta, image = result
+    assert meta["content_type"] == "image/png"
+    assert meta["size_bytes"] == len(PNG)
+    assert isinstance(image, Image)
+    block = image.to_image_content()
+    assert block.mimeType == "image/png"
+    assert base64.b64decode(block.data) == PNG
+
+
+@pytest.mark.asyncio
+async def test_download_non_image_returns_base64_dict():
+    graph = MagicMock()
+    _wire_chat(graph, data=b"not an image")
+    result = await teams_content.download_hosted_content(
+        graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1"
+    )
+    assert result["content_type"] is None
+    assert base64.b64decode(result["content_base64"]) == b"not an image"
 
 
 @pytest.mark.asyncio
@@ -56,7 +75,37 @@ async def test_download_from_channel_routes_correctly():
         graph=graph, team_id="t1", channel_id="ch1", message_id="m1", hosted_content_id="h1"
     )
     graph.raw.teams.by_team_id.assert_called_once_with("t1")
-    assert result["content_base64"] is not None
+    assert isinstance(result, list)
+
+
+@pytest.mark.asyncio
+async def test_save_path_writes_file_and_returns_path(tmp_path):
+    graph = MagicMock()
+    _wire_chat(graph)
+    target = tmp_path / "img.png"
+    result = await teams_content.download_hosted_content(
+        graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1",
+        save_path=str(target),
+    )
+    assert result["path"] == str(target)
+    assert result["content_type"] == "image/png"
+    assert result["size_bytes"] == len(PNG)
+    assert "content_base64" not in result
+    assert target.read_bytes() == PNG
+
+
+@pytest.mark.asyncio
+async def test_save_path_directory_generates_filename(tmp_path):
+    graph = MagicMock()
+    _wire_chat(graph)
+    result = await teams_content.download_hosted_content(
+        graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1",
+        save_path=str(tmp_path),
+    )
+    saved = pathlib.Path(result["path"])
+    assert saved.parent == tmp_path
+    assert saved.suffix == ".png"
+    assert saved.read_bytes() == PNG
 
 
 @pytest.mark.asyncio

@@ -29,6 +29,13 @@ list_message_replies, and download_hosted_content. They take no `mailbox`
 argument (delegated auth reads only your own chats; channel messages are
 team-scoped).
 
+Downloads: download_attachment and download_hosted_content return
+PNG/JPEG/GIF/WebP content as a native MCP image block (viewable directly,
+no base64 decoding needed). Pass `save_path` (a file path, or an existing
+directory) to write the bytes to disk and get back {path, content_type,
+size_bytes} instead — use that for non-image content or when you want a
+file on disk. Other content without `save_path` still returns base64.
+
 Pagination: list/search tools accept `limit` (1-100, default 25) and
 `page_token`. Pass the returned `next_page_token` back as `page_token`
 to fetch the next page.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+
 from kiota_abstractions.base_request_configuration import RequestConfiguration
 from msgraph.generated.users.item.mail_folders.item.messages.messages_request_builder import (
     MessagesRequestBuilder as FolderMessagesRequestBuilder,
@@ -26,6 +28,7 @@ from msgraph_mcp.graph.trimming import (
     trim_attachment_list,
     trim_message,
 )
+from msgraph_mcp.tools import _binary
 
 
 def _list_messages_query(*, limit: int, filter_expr: str | None = None):
@@ -220,11 +223,21 @@ async def download_attachment(
     message_id: str,
     attachment_id: str,
     mailbox: str | None = None,
+    save_path: str | None = None,
     include_raw: bool = False,
-) -> dict:
-    """Download a single attachment as base64.
+) -> dict | list:
+    """Download a single attachment.
 
-    Returns: {name, content_type, size_bytes, content_base64}
+    Args:
+        save_path: Write the bytes to this file path (or into this existing
+            directory, using the attachment's name) instead of returning
+            content. Returns {"path", "name", "content_type", "size_bytes"}.
+
+    Returns:
+        - Image attachments (PNG/JPEG/GIF/WebP, no save_path): metadata plus
+          the image itself as a native MCP image block, viewable directly.
+        - With save_path: {"path", "name", "content_type", "size_bytes"}.
+        - Otherwise: {name, content_type, size_bytes, content_base64}.
     """
     try:
         att = await (
@@ -237,6 +250,29 @@ async def download_attachment(
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
+
+    content = getattr(att, "content_bytes", None)
+    if isinstance(content, str):
+        content = base64.b64decode(content)
+    if isinstance(content, (bytes, bytearray)):
+        content = bytes(content)
+        name = getattr(att, "name", None)
+        content_type = getattr(att, "content_type", None)
+
+        if save_path is not None:
+            path = _binary.write_bytes(
+                save_path, content,
+                default_name=name or f"attachment-{attachment_id}{_binary.ext_for(content_type)}",
+            )
+            return {
+                "path": path, "name": name,
+                "content_type": content_type, "size_bytes": len(content),
+            }
+
+        if _binary.is_image(content_type):
+            meta = {"name": name, "content_type": content_type, "size_bytes": len(content)}
+            return _binary.image_result(meta, content, content_type)
+
     return trim_attachment_download(attachment_to_dict(att, include_content=True), include_raw=include_raw)
 
 
@@ -288,9 +324,10 @@ def register(mcp, *, graph) -> None:
 
     @mcp.tool(name="download_attachment", description=download_attachment.__doc__ or "")
     async def _download_attachment(
-        message_id: str, attachment_id: str, mailbox: str | None = None, include_raw: bool = False
+        message_id: str, attachment_id: str, mailbox: str | None = None,
+        save_path: str | None = None, include_raw: bool = False,
     ):
         return await download_attachment(
             graph=graph, message_id=message_id, attachment_id=attachment_id,
-            mailbox=mailbox, include_raw=include_raw,
+            mailbox=mailbox, save_path=save_path, include_raw=include_raw,
         )

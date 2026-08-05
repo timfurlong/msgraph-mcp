@@ -144,7 +144,7 @@ Read Teams message history as the signed-in user:
 
 - `list_chats`, `list_chat_messages`: your 1:1 and group chats.
 - `list_joined_teams`, `list_channels`, `list_channel_messages`, `list_message_replies`: team channels and their threads.
-- `download_hosted_content`: download an inline image referenced by a message (`hosted_content_refs`).
+- `download_hosted_content`: download an inline image referenced by a message (`hosted_content_refs`). Images come back as a native MCP image block the agent can view directly; pass `save_path` (file or existing directory) to write the bytes to disk and get back a path instead.
 
 ### Permissions and consent
 

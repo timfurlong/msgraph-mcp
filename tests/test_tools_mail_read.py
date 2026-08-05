@@ -212,3 +212,99 @@ async def test_download_attachment_returns_base64_content():
 
     assert result["name"] == "x.pdf"
     assert result["content_base64"] is not None
+
+
+PNG = b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR"
+
+
+def _wire_attachment(graph, att):
+    mb = MagicMock()
+    mb.messages.by_message_id = MagicMock(
+        return_value=MagicMock(
+            attachments=MagicMock(
+                by_attachment_id=MagicMock(return_value=MagicMock(get=AsyncMock(return_value=att)))
+            )
+        )
+    )
+    graph.mailbox = MagicMock(return_value=mb)
+
+
+@pytest.mark.asyncio
+async def test_download_attachment_image_returns_image_content():
+    import base64 as b64
+
+    from mcp.server.fastmcp.utilities.types import Image
+
+    graph = MagicMock()
+    att = SimpleNamespace(
+        id="a1", name="shot.png", content_type="image/png", size=len(PNG), is_inline=False,
+        content_bytes=PNG, additional_data={},
+    )
+    _wire_attachment(graph, att)
+
+    result = await mail_read.download_attachment(graph=graph, message_id="m1", attachment_id="a1")
+
+    assert isinstance(result, list) and len(result) == 2
+    meta, image = result
+    assert meta["name"] == "shot.png"
+    assert meta["content_type"] == "image/png"
+    assert isinstance(image, Image)
+    block = image.to_image_content()
+    assert block.mimeType == "image/png"
+    assert b64.b64decode(block.data) == PNG
+
+
+@pytest.mark.asyncio
+async def test_download_attachment_save_path_writes_file(tmp_path):
+    graph = MagicMock()
+    att = SimpleNamespace(
+        id="a1", name="x.pdf", content_type="application/pdf", size=4, is_inline=False,
+        content_bytes=b"\x00\x01\x02\x03", additional_data={},
+    )
+    _wire_attachment(graph, att)
+
+    target = tmp_path / "out.pdf"
+    result = await mail_read.download_attachment(
+        graph=graph, message_id="m1", attachment_id="a1", save_path=str(target)
+    )
+
+    assert result["path"] == str(target)
+    assert result["name"] == "x.pdf"
+    assert "content_base64" not in result
+    assert target.read_bytes() == b"\x00\x01\x02\x03"
+
+
+@pytest.mark.asyncio
+async def test_download_attachment_save_path_directory_uses_attachment_name(tmp_path):
+    graph = MagicMock()
+    att = SimpleNamespace(
+        id="a1", name="report.pdf", content_type="application/pdf", size=4, is_inline=False,
+        content_bytes=b"\x00\x01\x02\x03", additional_data={},
+    )
+    _wire_attachment(graph, att)
+
+    result = await mail_read.download_attachment(
+        graph=graph, message_id="m1", attachment_id="a1", save_path=str(tmp_path)
+    )
+
+    assert result["path"] == str(tmp_path / "report.pdf")
+    assert (tmp_path / "report.pdf").read_bytes() == b"\x00\x01\x02\x03"
+
+
+@pytest.mark.asyncio
+async def test_download_attachment_save_path_decodes_str_content_bytes(tmp_path):
+    import base64 as b64
+
+    graph = MagicMock()
+    att = SimpleNamespace(
+        id="a1", name="x.bin", content_type="application/octet-stream", size=4, is_inline=False,
+        content_bytes=b64.b64encode(b"\x00\x01\x02\x03").decode("ascii"), additional_data={},
+    )
+    _wire_attachment(graph, att)
+
+    result = await mail_read.download_attachment(
+        graph=graph, message_id="m1", attachment_id="a1", save_path=str(tmp_path / "x.bin")
+    )
+
+    assert (tmp_path / "x.bin").read_bytes() == b"\x00\x01\x02\x03"
+    assert result["size_bytes"] == 4

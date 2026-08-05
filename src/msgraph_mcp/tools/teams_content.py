@@ -11,10 +11,12 @@ surface and are out of scope (see README).
 from __future__ import annotations
 
 import base64
+import hashlib
 
 from msgraph_mcp.auth.token import NotAuthenticatedError
 from msgraph_mcp.graph.errors import GraphValidationError, map_kiota_error
 from msgraph_mcp.graph.trimming import trim_hosted_content_download
+from msgraph_mcp.tools import _binary
 
 
 def _sniff_content_type(data: bytes) -> str | None:
@@ -49,9 +51,10 @@ async def download_hosted_content(
     chat_id: str | None = None,
     team_id: str | None = None,
     channel_id: str | None = None,
+    save_path: str | None = None,
     include_raw: bool = False,
-) -> dict:
-    """Download one inline hosted-content item (usually an image) as base64.
+) -> dict | list:
+    """Download one inline hosted-content item (usually an image).
 
     Specify the message location with exactly one of:
       - chat_id (for a chat message), or
@@ -66,12 +69,20 @@ async def download_hosted_content(
         chat_id: Chat id, if the message is in a chat.
         team_id: Team id, if the message is in a channel.
         channel_id: Channel id, if the message is in a channel.
-        include_raw: Include the raw payload under "raw".
+        save_path: Write the bytes to this file path (or into this existing
+            directory) instead of returning content. Returns
+            {"path", "content_type", "size_bytes"} with no content payload.
+        include_raw: Include the raw payload under "raw" (ignored when the
+            result is an image block or a saved file).
 
     Returns:
-        {"content_type": str | None, "size_bytes": int, "content_base64": str | None}
-        content_type is sniffed from the bytes (Graph does not return it on
-        the $value endpoint); it may be None for unrecognized formats.
+        - Image content (PNG/JPEG/GIF/WebP, no save_path): metadata plus the
+          image itself as a native MCP image block, viewable directly.
+        - With save_path: {"path": str, "content_type": str | None, "size_bytes": int}.
+        - Otherwise: {"content_type": str | None, "size_bytes": int,
+          "content_base64": str | None}. content_type is sniffed from the
+          bytes (Graph does not return it on the $value endpoint); it may be
+          None for unrecognized formats.
     """
     has_chat = chat_id is not None
     has_team = team_id is not None
@@ -94,14 +105,30 @@ async def download_hosted_content(
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
 
-    if isinstance(data, (bytes, bytearray)):
-        raw = {
-            "contentType": _sniff_content_type(bytes(data)),
-            "size": len(data),
-            "contentBytes": base64.b64encode(data).decode("ascii"),
-        }
-    else:
+    if not isinstance(data, (bytes, bytearray)):
         raw = {"contentType": None, "size": 0, "contentBytes": None}
+        return trim_hosted_content_download(raw, include_raw=include_raw)
+
+    data = bytes(data)
+    content_type = _sniff_content_type(data)
+
+    if save_path is not None:
+        # hosted_content_id is opaque base64 (unsafe as a filename); hash it.
+        digest = hashlib.sha256(hosted_content_id.encode()).hexdigest()[:8]
+        ext = _binary.ext_for(content_type)
+        default_name = f"hosted-content-{message_id}-{digest}{ext}"
+        path = _binary.write_bytes(save_path, data, default_name=default_name)
+        return {"path": path, "content_type": content_type, "size_bytes": len(data)}
+
+    if _binary.is_image(content_type):
+        meta = {"content_type": content_type, "size_bytes": len(data)}
+        return _binary.image_result(meta, data, content_type)
+
+    raw = {
+        "contentType": content_type,
+        "size": len(data),
+        "contentBytes": base64.b64encode(data).decode("ascii"),
+    }
     return trim_hosted_content_download(raw, include_raw=include_raw)
 
 
@@ -113,9 +140,11 @@ def register(mcp, *, graph) -> None:
         chat_id: str | None = None,
         team_id: str | None = None,
         channel_id: str | None = None,
+        save_path: str | None = None,
         include_raw: bool = False,
     ):
         return await download_hosted_content(
             graph=graph, message_id=message_id, hosted_content_id=hosted_content_id,
-            chat_id=chat_id, team_id=team_id, channel_id=channel_id, include_raw=include_raw,
+            chat_id=chat_id, team_id=team_id, channel_id=channel_id,
+            save_path=save_path, include_raw=include_raw,
         )
