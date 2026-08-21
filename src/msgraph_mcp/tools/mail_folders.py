@@ -33,7 +33,10 @@ async def list_folders(
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    items = [trim_folder(folder_to_dict(f), include_raw=include_raw) for f in (collection.value or [])]
+    items = [
+        trim_folder(folder_to_dict(f), include_raw=include_raw)
+        for f in (collection.value or [])
+    ]
     return {"items": items, "next_page_token": None}
 
 
@@ -69,7 +72,9 @@ async def move_message(
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    return trim_message(message_to_dict(moved), include_body=False, include_raw=include_raw)
+    return trim_message(
+        message_to_dict(moved), include_body=False, include_raw=include_raw
+    )
 
 
 async def create_folder(
@@ -219,11 +224,17 @@ def register(mcp, *, graph) -> None:
 
     @mcp.tool(name="move_message", description=move_message.__doc__ or "")
     async def _move_message(
-        message_id: str, destination: str, mailbox: str | None = None, include_raw: bool = False
+        message_id: str,
+        destination: str,
+        mailbox: str | None = None,
+        include_raw: bool = False,
     ):
         return await move_message(
-            graph=graph, message_id=message_id, destination=destination,
-            mailbox=mailbox, include_raw=include_raw,
+            graph=graph,
+            message_id=message_id,
+            destination=destination,
+            mailbox=mailbox,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="create_folder", description=create_folder.__doc__ or "")

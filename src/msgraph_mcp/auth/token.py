@@ -14,9 +14,7 @@ class NotAuthenticatedError(RuntimeError):
     """Raised when no valid token is available and silent refresh failed."""
 
 
-_LOGIN_HINT = (
-    "Not authenticated. Run `msgraph-mcp-login` in a terminal to sign in."
-)
+_LOGIN_HINT = "Not authenticated. Run `msgraph-mcp-login` in a terminal to sign in."
 
 
 def get_access_token() -> str:

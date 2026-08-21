@@ -27,8 +27,12 @@ def test_require_env_raises_when_missing(monkeypatch):
 def test_token_cache_path_uses_default_when_unset(monkeypatch, tmp_path):
     monkeypatch.delenv("MSGRAPH_MCP_TOKEN_CACHE_PATH", raising=False)
     monkeypatch.delenv("OUTLOOK_MCP_TOKEN_CACHE_PATH", raising=False)
-    monkeypatch.setattr(config, "DEFAULT_CACHE_PATH", tmp_path / "new" / "token_cache.bin")
-    monkeypatch.setattr(config, "LEGACY_CACHE_PATH", tmp_path / "old" / "token_cache.bin")
+    monkeypatch.setattr(
+        config, "DEFAULT_CACHE_PATH", tmp_path / "new" / "token_cache.bin"
+    )
+    monkeypatch.setattr(
+        config, "LEGACY_CACHE_PATH", tmp_path / "old" / "token_cache.bin"
+    )
     assert config.token_cache_path() == tmp_path / "new" / "token_cache.bin"
 
 
@@ -38,7 +42,9 @@ def test_token_cache_path_falls_back_to_legacy_cache(monkeypatch, tmp_path):
     legacy = tmp_path / "old" / "token_cache.bin"
     legacy.parent.mkdir()
     legacy.write_bytes(b"cache")
-    monkeypatch.setattr(config, "DEFAULT_CACHE_PATH", tmp_path / "new" / "token_cache.bin")
+    monkeypatch.setattr(
+        config, "DEFAULT_CACHE_PATH", tmp_path / "new" / "token_cache.bin"
+    )
     monkeypatch.setattr(config, "LEGACY_CACHE_PATH", legacy)
     assert config.token_cache_path() == legacy
 
@@ -81,7 +87,13 @@ def test_scopes_match_spec():
 
 def test_scopes_include_teams_read():
     from msgraph_mcp import config
-    for scope in ("Chat.Read", "Team.ReadBasic.All", "Channel.ReadBasic.All", "ChannelMessage.Read.All"):
+
+    for scope in (
+        "Chat.Read",
+        "Team.ReadBasic.All",
+        "Channel.ReadBasic.All",
+        "ChannelMessage.Read.All",
+    ):
         assert scope in config.SCOPES
 
 

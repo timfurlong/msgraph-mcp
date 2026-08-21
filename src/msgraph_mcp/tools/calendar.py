@@ -121,7 +121,9 @@ async def list_events(
         else:
             collection = await cal_builder.calendar_view.get(
                 request_configuration=_calendar_view_query(
-                    start_datetime=start_datetime, end_datetime=end_datetime, limit=limit
+                    start_datetime=start_datetime,
+                    end_datetime=end_datetime,
+                    limit=limit,
                 )
             )
     except NotAuthenticatedError:
@@ -135,7 +137,9 @@ async def list_events(
     ]
     return {
         "items": items,
-        "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None)),
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
     }
 
 
@@ -154,7 +158,9 @@ async def get_event(
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    return trim_event(event_to_dict(evt), include_body=include_body, include_raw=include_raw)
+    return trim_event(
+        event_to_dict(evt), include_body=include_body, include_raw=include_raw
+    )
 
 
 def _dttz(dt: str, tz: str) -> DateTimeTimeZone:
@@ -241,9 +247,16 @@ async def create_event(
         Trimmed created event.
     """
     evt = _build_event(
-        subject=subject, start_datetime=start_datetime, end_datetime=end_datetime,
-        time_zone=time_zone, body=body, body_type=body_type, location=location,
-        attendees=attendees, is_online_meeting=is_online_meeting, is_all_day=is_all_day,
+        subject=subject,
+        start_datetime=start_datetime,
+        end_datetime=end_datetime,
+        time_zone=time_zone,
+        body=body,
+        body_type=body_type,
+        location=location,
+        attendees=attendees,
+        is_online_meeting=is_online_meeting,
+        is_all_day=is_all_day,
     )
     try:
         target = graph.mailbox(mailbox)
@@ -254,7 +267,9 @@ async def create_event(
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    return trim_event(event_to_dict(created), include_body=False, include_raw=include_raw)
+    return trim_event(
+        event_to_dict(created), include_body=False, include_raw=include_raw
+    )
 
 
 async def update_event(
@@ -305,7 +320,9 @@ async def update_event(
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    return trim_event(event_to_dict(updated), include_body=False, include_raw=include_raw)
+    return trim_event(
+        event_to_dict(updated), include_body=False, include_raw=include_raw
+    )
 
 
 async def delete_event(*, graph, event_id: str, mailbox: str | None = None) -> dict:
@@ -453,11 +470,15 @@ async def find_meeting_times(
                 "start": {
                     "date_time": getattr(getattr(ts, "start", None), "date_time", None),
                     "time_zone": getattr(getattr(ts, "start", None), "time_zone", None),
-                } if ts else None,
+                }
+                if ts
+                else None,
                 "end": {
                     "date_time": getattr(getattr(ts, "end", None), "date_time", None),
                     "time_zone": getattr(getattr(ts, "end", None), "time_zone", None),
-                } if ts else None,
+                }
+                if ts
+                else None,
                 "confidence": getattr(s, "confidence", None),
                 "order_hint": getattr(s, "order_hint", None),
             }
@@ -474,7 +495,9 @@ async def find_meeting_times(
 def register(mcp, *, graph) -> None:
     @mcp.tool(name="list_calendars", description=list_calendars.__doc__ or "")
     async def _list_calendars(mailbox: str | None = None, include_raw: bool = False):
-        return await list_calendars(graph=graph, mailbox=mailbox, include_raw=include_raw)
+        return await list_calendars(
+            graph=graph, mailbox=mailbox, include_raw=include_raw
+        )
 
     @mcp.tool(name="list_events", description=list_events.__doc__ or "")
     async def _list_events(
@@ -487,9 +510,14 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await list_events(
-            graph=graph, calendar_id=calendar_id,
-            start_datetime=start_datetime, end_datetime=end_datetime,
-            mailbox=mailbox, limit=limit, page_token=page_token, include_raw=include_raw,
+            graph=graph,
+            calendar_id=calendar_id,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
+            mailbox=mailbox,
+            limit=limit,
+            page_token=page_token,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="get_event", description=get_event.__doc__ or "")
@@ -500,27 +528,44 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await get_event(
-            graph=graph, event_id=event_id, mailbox=mailbox,
-            include_body=include_body, include_raw=include_raw,
+            graph=graph,
+            event_id=event_id,
+            mailbox=mailbox,
+            include_body=include_body,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="create_event", description=create_event.__doc__ or "")
     async def _create_event(
-        subject: str, start_datetime: str, end_datetime: str,
+        subject: str,
+        start_datetime: str,
+        end_datetime: str,
         time_zone: str = "UTC",
         body: str | None = None,
         body_type: Literal["text", "html"] = "text",
-        location: str | None = None, attendees: list[str] | None = None,
-        is_online_meeting: bool = False, is_all_day: bool = False,
-        calendar_id: str | None = None, mailbox: str | None = None,
+        location: str | None = None,
+        attendees: list[str] | None = None,
+        is_online_meeting: bool = False,
+        is_all_day: bool = False,
+        calendar_id: str | None = None,
+        mailbox: str | None = None,
         include_raw: bool = False,
     ):
         return await create_event(
-            graph=graph, subject=subject,
-            start_datetime=start_datetime, end_datetime=end_datetime,
-            time_zone=time_zone, body=body, body_type=body_type, location=location,
-            attendees=attendees, is_online_meeting=is_online_meeting, is_all_day=is_all_day,
-            calendar_id=calendar_id, mailbox=mailbox, include_raw=include_raw,
+            graph=graph,
+            subject=subject,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
+            time_zone=time_zone,
+            body=body,
+            body_type=body_type,
+            location=location,
+            attendees=attendees,
+            is_online_meeting=is_online_meeting,
+            is_all_day=is_all_day,
+            calendar_id=calendar_id,
+            mailbox=mailbox,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="update_event", description=update_event.__doc__ or "")
@@ -539,11 +584,19 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await update_event(
-            graph=graph, event_id=event_id, subject=subject,
-            start_datetime=start_datetime, end_datetime=end_datetime, time_zone=time_zone,
-            body=body, body_type=body_type, location=location,
-            is_online_meeting=is_online_meeting, is_all_day=is_all_day,
-            mailbox=mailbox, include_raw=include_raw,
+            graph=graph,
+            event_id=event_id,
+            subject=subject,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
+            time_zone=time_zone,
+            body=body,
+            body_type=body_type,
+            location=location,
+            is_online_meeting=is_online_meeting,
+            is_all_day=is_all_day,
+            mailbox=mailbox,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="delete_event", description=delete_event.__doc__ or "")
@@ -567,19 +620,31 @@ def register(mcp, *, graph) -> None:
         mailbox: str | None = None,
     ):
         return await respond_to_event(
-            graph=graph, event_id=event_id, response=response, comment=comment,
-            send_response=send_response, mailbox=mailbox,
+            graph=graph,
+            event_id=event_id,
+            response=response,
+            comment=comment,
+            send_response=send_response,
+            mailbox=mailbox,
         )
 
     @mcp.tool(name="find_meeting_times", description=find_meeting_times.__doc__ or "")
     async def _find(
-        attendees: list[str], duration_minutes: int,
-        start_window: str, end_window: str,
-        mailbox: str | None = None, max_candidates: int = 20,
+        attendees: list[str],
+        duration_minutes: int,
+        start_window: str,
+        end_window: str,
+        mailbox: str | None = None,
+        max_candidates: int = 20,
         include_raw: bool = False,
     ):
         return await find_meeting_times(
-            graph=graph, attendees=attendees, duration_minutes=duration_minutes,
-            start_window=start_window, end_window=end_window,
-            mailbox=mailbox, max_candidates=max_candidates, include_raw=include_raw,
+            graph=graph,
+            attendees=attendees,
+            duration_minutes=duration_minutes,
+            start_window=start_window,
+            end_window=end_window,
+            mailbox=mailbox,
+            max_candidates=max_candidates,
+            include_raw=include_raw,
         )

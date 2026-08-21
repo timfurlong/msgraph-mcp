@@ -212,6 +212,9 @@ uv run pyright src tests
 
 # Lint
 uv run ruff check .
+
+# Format (CI checks this)
+uv run ruff format .
 ```
 
 Releases are tag-driven: pushing a `vX.Y.Z` tag matching the `pyproject.toml` version runs the checks, publishes to PyPI via Trusted Publishing, and updates the MCP registry entry.

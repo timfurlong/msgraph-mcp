@@ -9,9 +9,12 @@ from msgraph_mcp.tools import calendar as cal_tools
 
 def _fake_calendar(id_="c1", name="Calendar"):
     return SimpleNamespace(
-        id=id_, name=name,
+        id=id_,
+        name=name,
         owner=SimpleNamespace(name="Alice", address="alice@example.com"),
-        can_edit=True, is_default_calendar=True, additional_data={},
+        can_edit=True,
+        is_default_calendar=True,
+        additional_data={},
     )
 
 
@@ -25,10 +28,15 @@ def _fake_event(id_="e1"):
         start=SimpleNamespace(date_time="2026-05-19T15:00:00", time_zone="UTC"),
         end=SimpleNamespace(date_time="2026-05-19T15:30:00", time_zone="UTC"),
         location=SimpleNamespace(display_name="Zoom"),
-        is_all_day=False, is_cancelled=False, is_online_meeting=False, online_meeting=None,
+        is_all_day=False,
+        is_cancelled=False,
+        is_online_meeting=False,
+        online_meeting=None,
         attendees=[],
         body_preview="Daily standup",
-        body=SimpleNamespace(content_type=SimpleNamespace(value="text"), content="Daily standup"),
+        body=SimpleNamespace(
+            content_type=SimpleNamespace(value="text"), content="Daily standup"
+        ),
         show_as=SimpleNamespace(value="busy"),
         sensitivity=SimpleNamespace(value="normal"),
         recurrence=None,
@@ -57,7 +65,9 @@ async def test_list_events_uses_calendar_view_with_date_range():
     graph = MagicMock()
     mb = MagicMock()
     cal_builder = MagicMock()
-    cal_builder.calendar_view.get = AsyncMock(return_value=_fake_collection([_fake_event()]))
+    cal_builder.calendar_view.get = AsyncMock(
+        return_value=_fake_collection([_fake_event()])
+    )
     mb.calendars.by_calendar_id = MagicMock(return_value=cal_builder)
     graph.mailbox = MagicMock(return_value=mb)
 
@@ -161,7 +171,9 @@ async def test_respond_to_event_accept():
     )
     graph.mailbox = MagicMock(return_value=mb)
 
-    result = await cal_tools.respond_to_event(graph=graph, event_id="e1", response="accept")
+    result = await cal_tools.respond_to_event(
+        graph=graph, event_id="e1", response="accept"
+    )
     assert result == {"status": "accepted"}
 
 

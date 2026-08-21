@@ -38,7 +38,11 @@ async def test_send_message_rejects_oversize_attachment():
             subject="Hi",
             body="Hello",
             attachments=[
-                {"name": "big.bin", "content_b64": huge, "content_type": "application/octet-stream"}
+                {
+                    "name": "big.bin",
+                    "content_b64": huge,
+                    "content_type": "application/octet-stream",
+                }
             ],
         )
 
@@ -48,10 +52,24 @@ async def test_create_draft_returns_id():
     graph = MagicMock()
     mb = MagicMock()
     draft = SimpleNamespace(
-        id="d1", subject="Draft", from_=None, to_recipients=[], cc_recipients=[],
-        received_date_time=None, sent_date_time=None, body_preview="", body=None,
-        is_read=True, is_draft=True, has_attachments=False, importance=None, flag=None,
-        categories=[], conversation_id=None, web_link=None, parent_folder_id=None,
+        id="d1",
+        subject="Draft",
+        from_=None,
+        to_recipients=[],
+        cc_recipients=[],
+        received_date_time=None,
+        sent_date_time=None,
+        body_preview="",
+        body=None,
+        is_read=True,
+        is_draft=True,
+        has_attachments=False,
+        importance=None,
+        flag=None,
+        categories=[],
+        conversation_id=None,
+        web_link=None,
+        parent_folder_id=None,
         additional_data={},
     )
     mb.messages.post = AsyncMock(return_value=draft)
@@ -73,7 +91,9 @@ async def test_reply_message_calls_reply_endpoint():
     )
     graph.mailbox = MagicMock(return_value=mb)
 
-    result = await mail_write.reply_message(graph=graph, message_id="m1", comment="thanks")
+    result = await mail_write.reply_message(
+        graph=graph, message_id="m1", comment="thanks"
+    )
 
     mb.messages.by_message_id.assert_called_once_with("m1")
     assert result == {"status": "sent"}
@@ -88,7 +108,9 @@ async def test_reply_all_message_calls_reply_all_endpoint():
     )
     graph.mailbox = MagicMock(return_value=mb)
 
-    result = await mail_write.reply_all_message(graph=graph, message_id="m1", comment="ack")
+    result = await mail_write.reply_all_message(
+        graph=graph, message_id="m1", comment="ack"
+    )
     assert result == {"status": "sent"}
 
 
@@ -112,13 +134,29 @@ async def test_update_message_sets_is_read():
     graph = MagicMock()
     mb = MagicMock()
     updated = SimpleNamespace(
-        id="m1", subject="x", from_=None, to_recipients=[], cc_recipients=[],
-        received_date_time=None, sent_date_time=None, body_preview="", body=None,
-        is_read=True, is_draft=False, has_attachments=False, importance=None, flag=None,
-        categories=[], conversation_id=None, web_link=None, parent_folder_id=None,
+        id="m1",
+        subject="x",
+        from_=None,
+        to_recipients=[],
+        cc_recipients=[],
+        received_date_time=None,
+        sent_date_time=None,
+        body_preview="",
+        body=None,
+        is_read=True,
+        is_draft=False,
+        has_attachments=False,
+        importance=None,
+        flag=None,
+        categories=[],
+        conversation_id=None,
+        web_link=None,
+        parent_folder_id=None,
         additional_data={},
     )
-    mb.messages.by_message_id = MagicMock(return_value=MagicMock(patch=AsyncMock(return_value=updated)))
+    mb.messages.by_message_id = MagicMock(
+        return_value=MagicMock(patch=AsyncMock(return_value=updated))
+    )
     graph.mailbox = MagicMock(return_value=mb)
 
     result = await mail_write.update_message(graph=graph, message_id="m1", is_read=True)
@@ -129,7 +167,9 @@ async def test_update_message_sets_is_read():
 async def test_delete_message_returns_status():
     graph = MagicMock()
     mb = MagicMock()
-    mb.messages.by_message_id = MagicMock(return_value=MagicMock(delete=AsyncMock(return_value=None)))
+    mb.messages.by_message_id = MagicMock(
+        return_value=MagicMock(delete=AsyncMock(return_value=None))
+    )
     graph.mailbox = MagicMock(return_value=mb)
 
     result = await mail_write.delete_message(graph=graph, message_id="m1")

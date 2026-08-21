@@ -73,7 +73,10 @@ def test_trim_event_minimal():
     t = trimming.trim_event(raw, include_body=False, include_raw=False)
     assert t["subject"] == "Standup"
     assert t["organizer"] == {"name": "Alice", "address": "alice@example.com"}
-    assert t["start"] == {"date_time": "2026-05-19T15:00:00", "time_zone": "America/Los_Angeles"}
+    assert t["start"] == {
+        "date_time": "2026-05-19T15:00:00",
+        "time_zone": "America/Los_Angeles",
+    }
     assert t["location"] == "Zoom"
     assert t["is_online_meeting"] is True
     assert t["online_meeting_url"] == "https://zoom.us/j/123"
@@ -229,10 +232,24 @@ def _raw_chat_message(**over):
         "importance": "normal",
         "subject": None,
         "from": {"id": "u1", "displayName": "Alice"},
-        "body": {"contentType": "html", "content": '<p>Hello <b>there</b> &amp; welcome</p>'},
-        "attachments": [{"id": "a1", "name": "f.docx", "contentType": "reference", "contentUrl": "https://example.com/f.docx"}],
+        "body": {
+            "contentType": "html",
+            "content": "<p>Hello <b>there</b> &amp; welcome</p>",
+        },
+        "attachments": [
+            {
+                "id": "a1",
+                "name": "f.docx",
+                "contentType": "reference",
+                "contentUrl": "https://example.com/f.docx",
+            }
+        ],
         "mentions": [{"id": 0, "mentionText": "Bob"}],
-        "reactions": [{"reactionType": "like"}, {"reactionType": "like"}, {"reactionType": "heart"}],
+        "reactions": [
+            {"reactionType": "like"},
+            {"reactionType": "like"},
+            {"reactionType": "heart"},
+        ],
         "webUrl": "https://teams.example/msg/1",
     }
     base.update(over)
@@ -257,31 +274,37 @@ def test_trim_chat_message_reaction_counts():
 
 def test_trim_chat_message_include_body_returns_full_content():
     t = trim_chat_message(_raw_chat_message(), include_body=True, include_raw=False)
-    assert t["body"] == '<p>Hello <b>there</b> &amp; welcome</p>'
+    assert t["body"] == "<p>Hello <b>there</b> &amp; welcome</p>"
 
 
 def test_trim_chat_message_extracts_hosted_content_ids():
-    raw = _raw_chat_message(body={
-        "contentType": "html",
-        "content": '<div><img src="https://graph.microsoft.com/v1.0/chats/c1/messages/m1/hostedContents/abc123/$value"></div>',
-    })
+    raw = _raw_chat_message(
+        body={
+            "contentType": "html",
+            "content": '<div><img src="https://graph.microsoft.com/v1.0/chats/c1/messages/m1/hostedContents/abc123/$value"></div>',
+        }
+    )
     t = trim_chat_message(raw, include_body=False, include_raw=False)
     assert t["hosted_content_refs"] == [{"hosted_content_id": "abc123"}]
 
 
 def _raw_card_message():
-    card = ('{"type": "AdaptiveCard", "body": ['
-            '{"type": "TextBlock", "text": "Access issue detected"},'
-            '{"type": "TextBlock", "text": "User bob@example.com locked out"}]}')
+    card = (
+        '{"type": "AdaptiveCard", "body": ['
+        '{"type": "TextBlock", "text": "Access issue detected"},'
+        '{"type": "TextBlock", "text": "User bob@example.com locked out"}]}'
+    )
     return _raw_chat_message(
         body={"contentType": "html", "content": '<attachment id="a1"></attachment>'},
-        attachments=[{
-            "id": "a1",
-            "contentType": "application/vnd.microsoft.card.adaptive",
-            "contentUrl": None,
-            "name": None,
-            "content": card,
-        }],
+        attachments=[
+            {
+                "id": "a1",
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "contentUrl": None,
+                "name": None,
+                "content": card,
+            }
+        ],
     )
 
 
@@ -316,10 +339,15 @@ def test_trim_chat_message_snippet_truncates():
 
 
 def test_trim_chat_flattens():
-    raw = {"id": "c1", "chatType": "group", "topic": "Launch",
-           "members": ["Alice", "Bob"], "lastUpdatedDateTime": "2026-07-01T09:00:00Z",
-           "lastMessagePreview": {"createdDateTime": "2026-07-03T17:46:28Z"},
-           "webUrl": "https://teams.example/chat/c1"}
+    raw = {
+        "id": "c1",
+        "chatType": "group",
+        "topic": "Launch",
+        "members": ["Alice", "Bob"],
+        "lastUpdatedDateTime": "2026-07-01T09:00:00Z",
+        "lastMessagePreview": {"createdDateTime": "2026-07-03T17:46:28Z"},
+        "webUrl": "https://teams.example/chat/c1",
+    }
     t = trim_chat(raw, include_raw=False)
     assert t["chat_type"] == "group"
     assert t["members"] == ["Alice", "Bob"]
@@ -330,27 +358,48 @@ def test_trim_chat_flattens():
 def test_trim_chat_missing_last_message_preview():
     # A chat with no lastMessagePreview (e.g. never-messaged) must not raise
     # and must yield last_message_time == None.
-    raw = {"id": "c1", "chatType": "oneOnOne", "members": ["Alice"],
-           "lastUpdatedDateTime": "2025-12-22T17:46:20Z"}
+    raw = {
+        "id": "c1",
+        "chatType": "oneOnOne",
+        "members": ["Alice"],
+        "lastUpdatedDateTime": "2025-12-22T17:46:20Z",
+    }
     t = trim_chat(raw, include_raw=False)
     assert t["last_message_time"] is None
     assert t["metadata_updated"] == "2025-12-22T17:46:20Z"
 
 
 def test_trim_team_and_channel():
-    assert trim_team({"id": "t1", "displayName": "Eng", "description": "d"}, include_raw=False) == {
-        "id": "t1", "display_name": "Eng", "description": "d",
+    assert trim_team(
+        {"id": "t1", "displayName": "Eng", "description": "d"}, include_raw=False
+    ) == {
+        "id": "t1",
+        "display_name": "Eng",
+        "description": "d",
     }
-    ch = trim_channel({"id": "ch1", "displayName": "General", "description": None,
-                       "membershipType": "standard", "webUrl": "u"}, include_raw=False)
+    ch = trim_channel(
+        {
+            "id": "ch1",
+            "displayName": "General",
+            "description": None,
+            "membershipType": "standard",
+            "webUrl": "u",
+        },
+        include_raw=False,
+    )
     assert ch["membership_type"] == "standard"
 
 
 def test_trim_hosted_content_download():
     t = trim_hosted_content_download(
-        {"contentType": "image/png", "size": 4, "contentBytes": "AAECAw=="}, include_raw=False
+        {"contentType": "image/png", "size": 4, "contentBytes": "AAECAw=="},
+        include_raw=False,
     )
-    assert t == {"content_type": "image/png", "size_bytes": 4, "content_base64": "AAECAw=="}
+    assert t == {
+        "content_type": "image/png",
+        "size_bytes": 4,
+        "content_base64": "AAECAw==",
+    }
 
 
 def test_trim_chat_message_minimal_all_missing():

@@ -8,8 +8,12 @@ from msgraph_mcp.tools import mail_folders
 
 def _fake_folder(id_="f1", name="Inbox"):
     return SimpleNamespace(
-        id=id_, display_name=name, parent_folder_id=None,
-        total_item_count=10, unread_item_count=2, child_folder_count=0,
+        id=id_,
+        display_name=name,
+        parent_folder_id=None,
+        total_item_count=10,
+        unread_item_count=2,
+        child_folder_count=0,
         additional_data={},
     )
 
@@ -32,10 +36,24 @@ async def test_move_message_calls_move_endpoint():
     graph = MagicMock()
     mb = MagicMock()
     moved = SimpleNamespace(
-        id="m1", subject="x", from_=None, to_recipients=[], cc_recipients=[],
-        received_date_time=None, sent_date_time=None, body_preview="", body=None,
-        is_read=False, is_draft=False, has_attachments=False, importance=None, flag=None,
-        categories=[], conversation_id=None, web_link=None, parent_folder_id="archive",
+        id="m1",
+        subject="x",
+        from_=None,
+        to_recipients=[],
+        cc_recipients=[],
+        received_date_time=None,
+        sent_date_time=None,
+        body_preview="",
+        body=None,
+        is_read=False,
+        is_draft=False,
+        has_attachments=False,
+        importance=None,
+        flag=None,
+        categories=[],
+        conversation_id=None,
+        web_link=None,
+        parent_folder_id="archive",
         additional_data={},
     )
     mb.messages.by_message_id = MagicMock(
@@ -43,7 +61,9 @@ async def test_move_message_calls_move_endpoint():
     )
     graph.mailbox = MagicMock(return_value=mb)
 
-    result = await mail_folders.move_message(graph=graph, message_id="m1", destination="archive")
+    result = await mail_folders.move_message(
+        graph=graph, message_id="m1", destination="archive"
+    )
     assert result["id"] == "m1"
 
 
@@ -53,11 +73,20 @@ async def test_move_message_accepts_well_known_destinations():
     graph = MagicMock()
     mb = MagicMock()
     mb.messages.by_message_id = MagicMock(
-        return_value=MagicMock(move=MagicMock(post=AsyncMock(return_value=_fake_folder())))
+        return_value=MagicMock(
+            move=MagicMock(post=AsyncMock(return_value=_fake_folder()))
+        )
     )
     graph.mailbox = MagicMock(return_value=mb)
 
-    for name in ("archive", "inbox", "junkemail", "deleteditems", "sentitems", "drafts"):
+    for name in (
+        "archive",
+        "inbox",
+        "junkemail",
+        "deleteditems",
+        "sentitems",
+        "drafts",
+    ):
         await mail_folders.move_message(graph=graph, message_id="m1", destination=name)
 
 
@@ -86,7 +115,9 @@ async def test_create_folder_child():
     graph = MagicMock()
     mb = MagicMock()
     created = _fake_folder(id_="child-id", name="Sub")
-    child_endpoint = MagicMock(child_folders=MagicMock(post=AsyncMock(return_value=created)))
+    child_endpoint = MagicMock(
+        child_folders=MagicMock(post=AsyncMock(return_value=created))
+    )
     mb.mail_folders.by_mail_folder_id = MagicMock(return_value=child_endpoint)
     graph.mailbox = MagicMock(return_value=mb)
 
@@ -215,9 +246,7 @@ async def test_update_folder_requires_folder_id():
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
-        await mail_folders.update_folder(
-            graph=graph, folder_id="", display_name="x"
-        )
+        await mail_folders.update_folder(graph=graph, folder_id="", display_name="x")
 
 
 @pytest.mark.asyncio

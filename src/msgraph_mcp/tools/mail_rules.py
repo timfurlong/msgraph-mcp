@@ -20,14 +20,12 @@ from msgraph_mcp.graph.trimming import trim_message_rule
 
 
 def _rules_endpoint(graph, mailbox: str | None):
-    return (
-        graph.mailbox(mailbox)
-        .mail_folders.by_mail_folder_id("inbox")
-        .message_rules
-    )
+    return graph.mailbox(mailbox).mail_folders.by_mail_folder_id("inbox").message_rules
 
 
-async def list_rules(*, graph, mailbox: str | None = None, include_raw: bool = False) -> dict:
+async def list_rules(
+    *, graph, mailbox: str | None = None, include_raw: bool = False
+) -> dict:
     """List inbox mail rules.
 
     Returns:

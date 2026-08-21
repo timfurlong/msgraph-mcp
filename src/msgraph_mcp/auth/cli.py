@@ -33,8 +33,7 @@ def run_login() -> int:
     persist_cache(cache)
 
     username = (
-        result.get("id_token_claims", {}).get("preferred_username")
-        or "<unknown>"
+        result.get("id_token_claims", {}).get("preferred_username") or "<unknown>"
     )
     print(f"Logged in as {username}", flush=True)
     print(f"Token cache saved to {config.token_cache_path()}", flush=True)

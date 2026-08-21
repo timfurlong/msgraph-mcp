@@ -37,7 +37,9 @@ def _build_graph_with_rules_endpoint():
 async def test_list_rules_returns_trimmed_items():
     graph, mb, inbox = _build_graph_with_rules_endpoint()
     inbox.message_rules.get = AsyncMock(
-        return_value=SimpleNamespace(value=[_fake_rule(), _fake_rule(id_="rule-2", name="r2")])
+        return_value=SimpleNamespace(
+            value=[_fake_rule(), _fake_rule(id_="rule-2", name="r2")]
+        )
     )
 
     result = await mail_rules.list_rules(graph=graph)
@@ -51,7 +53,9 @@ async def test_list_rules_returns_trimmed_items():
 async def test_get_rule_returns_trimmed_rule():
     graph, mb, inbox = _build_graph_with_rules_endpoint()
     by_id = MagicMock()
-    by_id.get = AsyncMock(return_value=_fake_rule(id_="rule-1", name="Test notifications"))
+    by_id.get = AsyncMock(
+        return_value=_fake_rule(id_="rule-1", name="Test notifications")
+    )
     inbox.message_rules.by_message_rule_id = MagicMock(return_value=by_id)
 
     result = await mail_rules.get_rule(graph=graph, rule_id="rule-1")
@@ -128,9 +132,7 @@ async def test_create_rule_requires_at_least_one_condition():
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
-        await mail_rules.create_rule(
-            graph=graph, display_name="r", move_to_folder="f"
-        )
+        await mail_rules.create_rule(graph=graph, display_name="r", move_to_folder="f")
 
 
 @pytest.mark.asyncio
@@ -211,7 +213,9 @@ async def test_update_rule_replaces_conditions_block():
     assert patched.conditions.subject_contains == ["[urgent]"]
     # Actions block not sent → preserved by Graph.
     assert patched.actions is None
-    cond_nulls = patched.conditions.backing_store.enumerate_keys_for_values_changed_to_null()
+    cond_nulls = (
+        patched.conditions.backing_store.enumerate_keys_for_values_changed_to_null()
+    )
     assert list(cond_nulls) == []
 
 
@@ -259,9 +263,7 @@ async def test_update_rule_rejects_whitespace_display_name():
 
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
-        await mail_rules.update_rule(
-            graph=graph, rule_id="rule-1", display_name="   "
-        )
+        await mail_rules.update_rule(graph=graph, rule_id="rule-1", display_name="   ")
 
 
 @pytest.mark.asyncio

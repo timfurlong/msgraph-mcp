@@ -5,7 +5,9 @@ from msgraph_mcp.graph import auth_provider
 
 
 def test_credential_get_token_returns_access_token():
-    with patch("msgraph_mcp.graph.auth_provider.get_access_token", return_value="tok-xyz"):
+    with patch(
+        "msgraph_mcp.graph.auth_provider.get_access_token", return_value="tok-xyz"
+    ):
         cred = auth_provider.MsalTokenCredential()
         result = cred.get_token("https://graph.microsoft.com/.default")
     assert result.token == "tok-xyz"
@@ -14,7 +16,9 @@ def test_credential_get_token_returns_access_token():
 
 
 def test_credential_ignores_scope_arg():
-    with patch("msgraph_mcp.graph.auth_provider.get_access_token", return_value="tok-xyz") as p:
+    with patch(
+        "msgraph_mcp.graph.auth_provider.get_access_token", return_value="tok-xyz"
+    ) as p:
         cred = auth_provider.MsalTokenCredential()
         cred.get_token("Mail.ReadWrite", "Calendars.ReadWrite")
     # get_access_token should be called without args (it uses MSAL's pre-configured scopes)

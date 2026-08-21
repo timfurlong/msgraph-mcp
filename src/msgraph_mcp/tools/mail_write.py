@@ -65,7 +65,9 @@ def _validate_and_build_attachments(atts: list[dict] | None) -> list[Attachment]
         try:
             raw = base64.b64decode(spec["content_b64"], validate=True)
         except (KeyError, ValueError) as exc:
-            raise GraphValidationError(f"Invalid attachment content_b64: {exc}") from exc
+            raise GraphValidationError(
+                f"Invalid attachment content_b64: {exc}"
+            ) from exc
         total += len(raw)
         if total > _MAX_INLINE_ATTACHMENT_BYTES:
             raise GraphValidationError(
@@ -136,8 +138,13 @@ async def send_message(
     if not to:
         raise GraphValidationError("`to` must be a non-empty list of email addresses")
     msg = _build_message(
-        to=to, subject=subject, body=body, body_type=body_type,
-        cc=cc, bcc=bcc, attachments=attachments,
+        to=to,
+        subject=subject,
+        body=body,
+        body_type=body_type,
+        cc=cc,
+        bcc=bcc,
+        attachments=attachments,
     )
     req = SendMailPostRequestBody()
     req.message = msg
@@ -166,8 +173,13 @@ async def create_draft(
 ) -> dict:
     """Create a draft message (not sent). Returns the trimmed draft."""
     msg = _build_message(
-        to=to, subject=subject, body=body, body_type=body_type,
-        cc=cc, bcc=bcc, attachments=attachments,
+        to=to,
+        subject=subject,
+        body=body,
+        body_type=body_type,
+        cc=cc,
+        bcc=bcc,
+        attachments=attachments,
     )
     try:
         created = await graph.mailbox(mailbox).messages.post(msg)
@@ -175,7 +187,9 @@ async def create_draft(
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    return trim_message(message_to_dict(created), include_body=False, include_raw=include_raw)
+    return trim_message(
+        message_to_dict(created), include_body=False, include_raw=include_raw
+    )
 
 
 def _reply_body(comment: str | None, to: list[str] | None) -> ReplyPostRequestBody:
@@ -271,7 +285,11 @@ async def forward_message(
     return {"status": "sent"}
 
 
-_IMPORTANCE_MAP = {"low": Importance.Low, "normal": Importance.Normal, "high": Importance.High}
+_IMPORTANCE_MAP = {
+    "low": Importance.Low,
+    "normal": Importance.Normal,
+    "high": Importance.High,
+}
 _FLAG_MAP = {
     "notFlagged": FollowupFlagStatus.NotFlagged,
     "flagged": FollowupFlagStatus.Flagged,
@@ -310,7 +328,9 @@ async def update_message(
         patch.flag = ff
     if importance is not None:
         if importance not in _IMPORTANCE_MAP:
-            raise GraphValidationError(f"importance must be one of {list(_IMPORTANCE_MAP)}")
+            raise GraphValidationError(
+                f"importance must be one of {list(_IMPORTANCE_MAP)}"
+            )
         patch.importance = _IMPORTANCE_MAP[importance]
     if categories is not None:
         patch.categories = list(categories)
@@ -318,17 +338,19 @@ async def update_message(
         patch.parent_folder_id = parent_folder_id
 
     try:
-        updated = await graph.mailbox(mailbox).messages.by_message_id(message_id).patch(patch)
+        updated = (
+            await graph.mailbox(mailbox).messages.by_message_id(message_id).patch(patch)
+        )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    return trim_message(message_to_dict(updated), include_body=False, include_raw=include_raw)
+    return trim_message(
+        message_to_dict(updated), include_body=False, include_raw=include_raw
+    )
 
 
-async def delete_message(
-    *, graph, message_id: str, mailbox: str | None = None
-) -> dict:
+async def delete_message(*, graph, message_id: str, mailbox: str | None = None) -> dict:
     """Soft-delete a message (moves it to Deleted Items)."""
     try:
         await graph.mailbox(mailbox).messages.by_message_id(message_id).delete()
@@ -342,43 +364,87 @@ async def delete_message(
 def register(mcp, *, graph) -> None:
     @mcp.tool(name="send_message", description=send_message.__doc__ or "")
     async def _send(
-        to: list[str], subject: str, body: str,
+        to: list[str],
+        subject: str,
+        body: str,
         body_type: Literal["text", "html"] = "text",
         cc: list[str] | None = None,
-        bcc: list[str] | None = None, attachments: list[dict] | None = None,
-        save_to_sent_items: bool = True, mailbox: str | None = None,
+        bcc: list[str] | None = None,
+        attachments: list[dict] | None = None,
+        save_to_sent_items: bool = True,
+        mailbox: str | None = None,
     ):
         return await send_message(
-            graph=graph, to=to, subject=subject, body=body,
-            body_type=body_type, cc=cc, bcc=bcc, attachments=attachments,
-            save_to_sent_items=save_to_sent_items, mailbox=mailbox,
+            graph=graph,
+            to=to,
+            subject=subject,
+            body=body,
+            body_type=body_type,
+            cc=cc,
+            bcc=bcc,
+            attachments=attachments,
+            save_to_sent_items=save_to_sent_items,
+            mailbox=mailbox,
         )
 
     @mcp.tool(name="create_draft", description=create_draft.__doc__ or "")
     async def _draft(
-        to: list[str], subject: str, body: str,
+        to: list[str],
+        subject: str,
+        body: str,
         body_type: Literal["text", "html"] = "text",
         cc: list[str] | None = None,
-        bcc: list[str] | None = None, attachments: list[dict] | None = None,
-        mailbox: str | None = None, include_raw: bool = False,
+        bcc: list[str] | None = None,
+        attachments: list[dict] | None = None,
+        mailbox: str | None = None,
+        include_raw: bool = False,
     ):
         return await create_draft(
-            graph=graph, to=to, subject=subject, body=body,
-            body_type=body_type, cc=cc, bcc=bcc, attachments=attachments,
-            mailbox=mailbox, include_raw=include_raw,
+            graph=graph,
+            to=to,
+            subject=subject,
+            body=body,
+            body_type=body_type,
+            cc=cc,
+            bcc=bcc,
+            attachments=attachments,
+            mailbox=mailbox,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="reply_message", description=reply_message.__doc__ or "")
-    async def _reply(message_id: str, comment: str | None = None, extra_to: list[str] | None = None, mailbox: str | None = None):
-        return await reply_message(graph=graph, message_id=message_id, comment=comment, extra_to=extra_to, mailbox=mailbox)
+    async def _reply(
+        message_id: str,
+        comment: str | None = None,
+        extra_to: list[str] | None = None,
+        mailbox: str | None = None,
+    ):
+        return await reply_message(
+            graph=graph,
+            message_id=message_id,
+            comment=comment,
+            extra_to=extra_to,
+            mailbox=mailbox,
+        )
 
     @mcp.tool(name="reply_all_message", description=reply_all_message.__doc__ or "")
-    async def _reply_all(message_id: str, comment: str | None = None, mailbox: str | None = None):
-        return await reply_all_message(graph=graph, message_id=message_id, comment=comment, mailbox=mailbox)
+    async def _reply_all(
+        message_id: str, comment: str | None = None, mailbox: str | None = None
+    ):
+        return await reply_all_message(
+            graph=graph, message_id=message_id, comment=comment, mailbox=mailbox
+        )
 
     @mcp.tool(name="forward_message", description=forward_message.__doc__ or "")
-    async def _forward(message_id: str, to: list[str], comment: str | None = None, mailbox: str | None = None):
-        return await forward_message(graph=graph, message_id=message_id, to=to, comment=comment, mailbox=mailbox)
+    async def _forward(
+        message_id: str,
+        to: list[str],
+        comment: str | None = None,
+        mailbox: str | None = None,
+    ):
+        return await forward_message(
+            graph=graph, message_id=message_id, to=to, comment=comment, mailbox=mailbox
+        )
 
     @mcp.tool(name="update_message", description=update_message.__doc__ or "")
     async def _update(
@@ -392,10 +458,15 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await update_message(
-            graph=graph, message_id=message_id,
-            is_read=is_read, flag=flag, importance=importance,
-            categories=categories, parent_folder_id=parent_folder_id,
-            mailbox=mailbox, include_raw=include_raw,
+            graph=graph,
+            message_id=message_id,
+            is_read=is_read,
+            flag=flag,
+            importance=importance,
+            categories=categories,
+            parent_folder_id=parent_folder_id,
+            mailbox=mailbox,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="delete_message", description=delete_message.__doc__ or "")

@@ -10,7 +10,11 @@ from msgraph.generated.chats.item.messages.messages_request_builder import (
 
 from msgraph_mcp.auth.token import NotAuthenticatedError
 from msgraph_mcp.graph.errors import map_kiota_error
-from msgraph_mcp.graph.pagination import decode_page_token, encode_next_link, validate_limit
+from msgraph_mcp.graph.pagination import (
+    decode_page_token,
+    encode_next_link,
+    validate_limit,
+)
 from msgraph_mcp.graph.serialize import chat_message_to_dict, chat_to_dict
 from msgraph_mcp.graph.trimming import trim_chat, trim_chat_message
 
@@ -20,9 +24,9 @@ def _list_chats_query(*, limit: int):
         top=limit,
         expand=["members", "lastMessagePreview"],
     )
-    return RequestConfiguration[ChatsRequestBuilder.ChatsRequestBuilderGetQueryParameters](
-        query_parameters=qp
-    )
+    return RequestConfiguration[
+        ChatsRequestBuilder.ChatsRequestBuilderGetQueryParameters
+    ](query_parameters=qp)
 
 
 def _list_chat_messages_query(*, limit: int):
@@ -68,14 +72,24 @@ async def list_chats(
             url = decode_page_token(page_token)
             collection = await builder.with_url(url).get()
         else:
-            collection = await builder.get(request_configuration=_list_chats_query(limit=limit))
+            collection = await builder.get(
+                request_configuration=_list_chats_query(limit=limit)
+            )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
 
-    items = [trim_chat(chat_to_dict(c), include_raw=include_raw) for c in (collection.value or [])]
-    return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
+    items = [
+        trim_chat(chat_to_dict(c), include_raw=include_raw)
+        for c in (collection.value or [])
+    ]
+    return {
+        "items": items,
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
+    }
 
 
 async def list_chat_messages(
@@ -108,23 +122,36 @@ async def list_chat_messages(
             url = decode_page_token(page_token)
             collection = await builder.with_url(url).get()
         else:
-            collection = await builder.get(request_configuration=_list_chat_messages_query(limit=limit))
+            collection = await builder.get(
+                request_configuration=_list_chat_messages_query(limit=limit)
+            )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
 
     items = [
-        trim_chat_message(chat_message_to_dict(m), include_body=include_body, include_raw=include_raw)
+        trim_chat_message(
+            chat_message_to_dict(m), include_body=include_body, include_raw=include_raw
+        )
         for m in (collection.value or [])
     ]
-    return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
+    return {
+        "items": items,
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
+    }
 
 
 def register(mcp, *, graph) -> None:
     @mcp.tool(name="list_chats", description=list_chats.__doc__ or "")
-    async def _list_chats(limit: int = 25, page_token: str | None = None, include_raw: bool = False):
-        return await list_chats(graph=graph, limit=limit, page_token=page_token, include_raw=include_raw)
+    async def _list_chats(
+        limit: int = 25, page_token: str | None = None, include_raw: bool = False
+    ):
+        return await list_chats(
+            graph=graph, limit=limit, page_token=page_token, include_raw=include_raw
+        )
 
     @mcp.tool(name="list_chat_messages", description=list_chat_messages.__doc__ or "")
     async def _list_chat_messages(
@@ -135,6 +162,10 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await list_chat_messages(
-            graph=graph, chat_id=chat_id, limit=limit,
-            page_token=page_token, include_body=include_body, include_raw=include_raw,
+            graph=graph,
+            chat_id=chat_id,
+            limit=limit,
+            page_token=page_token,
+            include_body=include_body,
+            include_raw=include_raw,
         )

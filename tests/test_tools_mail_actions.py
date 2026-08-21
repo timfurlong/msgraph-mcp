@@ -14,7 +14,11 @@ async def test_archive_message_delegates_to_move():
     ) as p:
         result = await mail_actions.archive_message(graph=graph, message_id="m1")
     p.assert_awaited_once_with(
-        graph=graph, message_id="m1", destination="archive", mailbox=None, include_raw=False
+        graph=graph,
+        message_id="m1",
+        destination="archive",
+        mailbox=None,
+        include_raw=False,
     )
     assert result == {"id": "m1"}
 

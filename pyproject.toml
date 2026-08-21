@@ -52,6 +52,11 @@ dev = [
     "ruff>=0.6",
 ]
 
+[tool.ruff]
+# Pinned rather than left implicit so a ruff release changing the default
+# cannot reformat the tree out from under CI.
+line-length = 88
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

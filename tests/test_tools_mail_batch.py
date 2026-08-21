@@ -74,7 +74,9 @@ async def test_batch_archive_messages_reports_per_id_failures(monkeypatch):
     async def fake_execute_batch(transport, requests, *, chunk_size=20):
         return [
             BatchResult(id="m1", ok=True, status=204),
-            BatchResult(id="m2", ok=False, status=404, error="404 ErrorItemNotFound: gone"),
+            BatchResult(
+                id="m2", ok=False, status=404, error="404 ErrorItemNotFound: gone"
+            ),
         ]
 
     monkeypatch.setattr(mail_batch, "execute_batch", fake_execute_batch)
@@ -186,7 +188,9 @@ async def test_batch_flag_messages_patches_flag_flagged(monkeypatch):
         "/me/messages/m1",
         "/me/messages/m2",
     ]
-    assert all(r.body == {"flag": {"flagStatus": "flagged"}} for r in captured["requests"])
+    assert all(
+        r.body == {"flag": {"flagStatus": "flagged"}} for r in captured["requests"]
+    )
 
 
 @pytest.mark.asyncio
@@ -207,7 +211,9 @@ async def test_batch_unflag_messages_patches_flag_notFlagged(monkeypatch):
         "/me/messages/m1",
         "/me/messages/m2",
     ]
-    assert all(r.body == {"flag": {"flagStatus": "notFlagged"}} for r in captured["requests"])
+    assert all(
+        r.body == {"flag": {"flagStatus": "notFlagged"}} for r in captured["requests"]
+    )
 
 
 def test_register_wires_all_six_batch_tools():

@@ -57,7 +57,9 @@ async def test_event_create_get_delete_roundtrip(graph):
         cals["items"][0],
     )
 
-    start = dt.datetime.now(dt.UTC).replace(microsecond=0, tzinfo=None) + dt.timedelta(days=365)
+    start = dt.datetime.now(dt.UTC).replace(microsecond=0, tzinfo=None) + dt.timedelta(
+        days=365
+    )
     end = start + dt.timedelta(minutes=15)
     subject = f"MSGraph MCP smoke {int(time.time())}"
 

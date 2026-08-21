@@ -170,7 +170,9 @@ async def batch_flag_messages(
 ) -> dict[str, Any]:
     """Flag a list of messages (set followup flag to 'flagged')."""
     _validate_ids(message_ids)
-    requests = _patch_requests(message_ids, mailbox, {"flag": {"flagStatus": "flagged"}})
+    requests = _patch_requests(
+        message_ids, mailbox, {"flag": {"flagStatus": "flagged"}}
+    )
     transport = GraphBatchTransport(graph)
     results = await execute_batch(transport, requests)
     return _summarize(results)
@@ -184,37 +186,56 @@ async def batch_unflag_messages(
 ) -> dict[str, Any]:
     """Unflag a list of messages (set followup flag to 'notFlagged')."""
     _validate_ids(message_ids)
-    requests = _patch_requests(message_ids, mailbox, {"flag": {"flagStatus": "notFlagged"}})
+    requests = _patch_requests(
+        message_ids, mailbox, {"flag": {"flagStatus": "notFlagged"}}
+    )
     transport = GraphBatchTransport(graph)
     results = await execute_batch(transport, requests)
     return _summarize(results)
 
 
 def register(mcp, *, graph) -> None:
-    @mcp.tool(name="batch_archive_messages", description=batch_archive_messages.__doc__ or "")
+    @mcp.tool(
+        name="batch_archive_messages", description=batch_archive_messages.__doc__ or ""
+    )
     async def _archive(message_ids: list[str], mailbox: str | None = None):
         return await batch_archive_messages(
             graph=graph, message_ids=message_ids, mailbox=mailbox
         )
 
     @mcp.tool(name="batch_move_messages", description=batch_move_messages.__doc__ or "")
-    async def _move(message_ids: list[str], destination: str, mailbox: str | None = None):
+    async def _move(
+        message_ids: list[str], destination: str, mailbox: str | None = None
+    ):
         return await batch_move_messages(
-            graph=graph, message_ids=message_ids, destination=destination, mailbox=mailbox
+            graph=graph,
+            message_ids=message_ids,
+            destination=destination,
+            mailbox=mailbox,
         )
 
     @mcp.tool(name="batch_mark_read", description=batch_mark_read.__doc__ or "")
     async def _mark_read(message_ids: list[str], mailbox: str | None = None):
-        return await batch_mark_read(graph=graph, message_ids=message_ids, mailbox=mailbox)
+        return await batch_mark_read(
+            graph=graph, message_ids=message_ids, mailbox=mailbox
+        )
 
     @mcp.tool(name="batch_mark_unread", description=batch_mark_unread.__doc__ or "")
     async def _mark_unread(message_ids: list[str], mailbox: str | None = None):
-        return await batch_mark_unread(graph=graph, message_ids=message_ids, mailbox=mailbox)
+        return await batch_mark_unread(
+            graph=graph, message_ids=message_ids, mailbox=mailbox
+        )
 
     @mcp.tool(name="batch_flag_messages", description=batch_flag_messages.__doc__ or "")
     async def _flag(message_ids: list[str], mailbox: str | None = None):
-        return await batch_flag_messages(graph=graph, message_ids=message_ids, mailbox=mailbox)
+        return await batch_flag_messages(
+            graph=graph, message_ids=message_ids, mailbox=mailbox
+        )
 
-    @mcp.tool(name="batch_unflag_messages", description=batch_unflag_messages.__doc__ or "")
+    @mcp.tool(
+        name="batch_unflag_messages", description=batch_unflag_messages.__doc__ or ""
+    )
     async def _unflag(message_ids: list[str], mailbox: str | None = None):
-        return await batch_unflag_messages(graph=graph, message_ids=message_ids, mailbox=mailbox)
+        return await batch_unflag_messages(
+            graph=graph, message_ids=message_ids, mailbox=mailbox
+        )

@@ -103,7 +103,9 @@ async def list_messages(
             collection = await builder.with_url(url).get()
         else:
             collection = await builder.get(
-                request_configuration=_list_messages_query(limit=limit, filter_expr=filter_expr)
+                request_configuration=_list_messages_query(
+                    limit=limit, filter_expr=filter_expr
+                )
             )
     except NotAuthenticatedError:
         raise
@@ -114,7 +116,12 @@ async def list_messages(
         trim_message(message_to_dict(m), include_body=False, include_raw=include_raw)
         for m in (collection.value or [])
     ]
-    return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
+    return {
+        "items": items,
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
+    }
 
 
 async def search_messages(
@@ -154,7 +161,9 @@ async def search_messages(
             url = decode_page_token(page_token)
             collection = await builder.with_url(url).get()
         else:
-            collection = await builder.get(request_configuration=_search_query(limit=limit, query=query))
+            collection = await builder.get(
+                request_configuration=_search_query(limit=limit, query=query)
+            )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -164,7 +173,12 @@ async def search_messages(
         trim_message(message_to_dict(m), include_body=False, include_raw=include_raw)
         for m in (collection.value or [])
     ]
-    return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
+    return {
+        "items": items,
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
+    }
 
 
 async def get_message(
@@ -193,7 +207,9 @@ async def get_message(
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    return trim_message(message_to_dict(msg), include_body=include_body, include_raw=include_raw)
+    return trim_message(
+        message_to_dict(msg), include_body=include_body, include_raw=include_raw
+    )
 
 
 async def list_attachments(
@@ -205,13 +221,19 @@ async def list_attachments(
 ) -> dict:
     """List attachments on a message (metadata only — no content)."""
     try:
-        collection = await graph.mailbox(mailbox).messages.by_message_id(message_id).attachments.get()
+        collection = (
+            await graph.mailbox(mailbox)
+            .messages.by_message_id(message_id)
+            .attachments.get()
+        )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
     items = [
-        trim_attachment_list(attachment_to_dict(a, include_content=False), include_raw=include_raw)
+        trim_attachment_list(
+            attachment_to_dict(a, include_content=False), include_raw=include_raw
+        )
         for a in (collection.value or [])
     ]
     return {"items": items, "next_page_token": None}
@@ -261,19 +283,29 @@ async def download_attachment(
 
         if save_path is not None:
             path = _binary.write_bytes(
-                save_path, content,
-                default_name=name or f"attachment-{attachment_id}{_binary.ext_for(content_type)}",
+                save_path,
+                content,
+                default_name=name
+                or f"attachment-{attachment_id}{_binary.ext_for(content_type)}",
             )
             return {
-                "path": path, "name": name,
-                "content_type": content_type, "size_bytes": len(content),
+                "path": path,
+                "name": name,
+                "content_type": content_type,
+                "size_bytes": len(content),
             }
 
         if _binary.is_image(content_type):
-            meta = {"name": name, "content_type": content_type, "size_bytes": len(content)}
+            meta = {
+                "name": name,
+                "content_type": content_type,
+                "size_bytes": len(content),
+            }
             return _binary.image_result(meta, content, content_type)
 
-    return trim_attachment_download(attachment_to_dict(att, include_content=True), include_raw=include_raw)
+    return trim_attachment_download(
+        attachment_to_dict(att, include_content=True), include_raw=include_raw
+    )
 
 
 def register(mcp, *, graph) -> None:
@@ -288,9 +320,14 @@ def register(mcp, *, graph) -> None:
         filter: str | None = None,
     ):
         return await list_messages(
-            graph=graph, folder_id=folder_id, mailbox=mailbox,
-            limit=limit, page_token=page_token, include_raw=include_raw,
-            unread_only=unread_only, filter=filter,
+            graph=graph,
+            folder_id=folder_id,
+            mailbox=mailbox,
+            limit=limit,
+            page_token=page_token,
+            include_raw=include_raw,
+            unread_only=unread_only,
+            filter=filter,
         )
 
     @mcp.tool(name="search_messages", description=search_messages.__doc__ or "")
@@ -302,8 +339,12 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await search_messages(
-            graph=graph, query=query, mailbox=mailbox,
-            limit=limit, page_token=page_token, include_raw=include_raw,
+            graph=graph,
+            query=query,
+            mailbox=mailbox,
+            limit=limit,
+            page_token=page_token,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="get_message", description=get_message.__doc__ or "")
@@ -314,20 +355,34 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await get_message(
-            graph=graph, message_id=message_id, mailbox=mailbox,
-            include_body=include_body, include_raw=include_raw,
+            graph=graph,
+            message_id=message_id,
+            mailbox=mailbox,
+            include_body=include_body,
+            include_raw=include_raw,
         )
 
     @mcp.tool(name="list_attachments", description=list_attachments.__doc__ or "")
-    async def _list_attachments(message_id: str, mailbox: str | None = None, include_raw: bool = False):
-        return await list_attachments(graph=graph, message_id=message_id, mailbox=mailbox, include_raw=include_raw)
+    async def _list_attachments(
+        message_id: str, mailbox: str | None = None, include_raw: bool = False
+    ):
+        return await list_attachments(
+            graph=graph, message_id=message_id, mailbox=mailbox, include_raw=include_raw
+        )
 
     @mcp.tool(name="download_attachment", description=download_attachment.__doc__ or "")
     async def _download_attachment(
-        message_id: str, attachment_id: str, mailbox: str | None = None,
-        save_path: str | None = None, include_raw: bool = False,
+        message_id: str,
+        attachment_id: str,
+        mailbox: str | None = None,
+        save_path: str | None = None,
+        include_raw: bool = False,
     ):
         return await download_attachment(
-            graph=graph, message_id=message_id, attachment_id=attachment_id,
-            mailbox=mailbox, save_path=save_path, include_raw=include_raw,
+            graph=graph,
+            message_id=message_id,
+            attachment_id=attachment_id,
+            mailbox=mailbox,
+            save_path=save_path,
+            include_raw=include_raw,
         )

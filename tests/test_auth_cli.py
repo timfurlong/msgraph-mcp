@@ -37,7 +37,9 @@ def test_login_happy_path(monkeypatch, capsys):
     assert len(persist_calls) == 1
 
 
-def test_login_fails_when_initiate_device_flow_returns_no_user_code(monkeypatch, capsys):
+def test_login_fails_when_initiate_device_flow_returns_no_user_code(
+    monkeypatch, capsys
+):
     _setup_fakes(monkeypatch, init_flow={"error": "boom"})
     exit_code = cli.run_login()
     assert exit_code != 0
@@ -50,7 +52,10 @@ def test_login_fails_when_acquire_returns_error(monkeypatch, capsys):
     _setup_fakes(
         monkeypatch,
         init_flow={"message": "Visit url and enter ABC", "user_code": "ABC"},
-        acquire_result={"error": "authorization_declined", "error_description": "User declined"},
+        acquire_result={
+            "error": "authorization_declined",
+            "error_description": "User declined",
+        },
     )
     exit_code = cli.run_login()
     assert exit_code != 0

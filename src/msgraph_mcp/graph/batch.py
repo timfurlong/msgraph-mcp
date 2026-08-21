@@ -95,7 +95,9 @@ async def execute_batch(
                 new_sub_id = str(j)
                 retry_subid_to_caller[new_sub_id] = subid_to_caller[orig["id"]]
                 retry_payload_requests.append({**orig, "id": new_sub_id})
-            retry_response = await transport.post_batch({"requests": retry_payload_requests})
+            retry_response = await transport.post_batch(
+                {"requests": retry_payload_requests}
+            )
 
             # Merge non-throttled originals with retry results.
             keep = [r for r in response.get("responses", []) if r.get("status") != 429]
@@ -118,7 +120,9 @@ async def execute_batch(
     for req in requests:
         out.append(
             results_by_id.get(req.id)
-            or BatchResult(id=req.id, ok=False, status=0, error="No response from $batch")
+            or BatchResult(
+                id=req.id, ok=False, status=0, error="No response from $batch"
+            )
         )
     return out
 
@@ -146,7 +150,9 @@ def _format_error(status: int, body: dict[str, Any] | None) -> str:
     return str(status)
 
 
-def _throttled_entries(response: dict[str, Any], payload_requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _throttled_entries(
+    response: dict[str, Any], payload_requests: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     """Return the original payload entries whose responses came back 429."""
     throttled_ids = {
         str(r.get("id"))
@@ -202,5 +208,7 @@ class GraphBatchTransport:
         ri.headers.try_add("Content-Type", "application/json")
         ri.content = json.dumps(payload).encode("utf-8")
 
-        raw = await self._graph.raw.request_adapter.send_primitive_async(ri, "bytes", {})
+        raw = await self._graph.raw.request_adapter.send_primitive_async(
+            ri, "bytes", {}
+        )
         return json.loads(raw)

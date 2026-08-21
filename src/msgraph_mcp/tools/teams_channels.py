@@ -11,15 +11,25 @@ from msgraph.generated.teams.item.channels.item.messages.item.replies.replies_re
 )
 from msgraph_mcp.auth.token import NotAuthenticatedError
 from msgraph_mcp.graph.errors import map_kiota_error
-from msgraph_mcp.graph.pagination import decode_page_token, encode_next_link, validate_limit
-from msgraph_mcp.graph.serialize import channel_to_dict, chat_message_to_dict, team_to_dict
+from msgraph_mcp.graph.pagination import (
+    decode_page_token,
+    encode_next_link,
+    validate_limit,
+)
+from msgraph_mcp.graph.serialize import (
+    channel_to_dict,
+    chat_message_to_dict,
+    team_to_dict,
+)
 from msgraph_mcp.graph.trimming import trim_channel, trim_chat_message, trim_team
 
 _CHANNEL_MSG_MAX = 50
 
 
 def _channel_messages_query(*, limit: int):
-    qp = ChannelMessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters(top=limit)
+    qp = ChannelMessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters(
+        top=limit
+    )
     return RequestConfiguration[
         ChannelMessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters
     ](query_parameters=qp)
@@ -58,17 +68,32 @@ async def list_joined_teams(
     try:
         # /me/joinedTeams rejects $top ("Query option 'Top' is not allowed"),
         # so fetch unpaged and cap client-side.
-        collection = await _paged(builder, page_token=page_token, request_configuration=None)
+        collection = await _paged(
+            builder, page_token=page_token, request_configuration=None
+        )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    items = [trim_team(team_to_dict(t), include_raw=include_raw) for t in (collection.value or [])[:limit]]
-    return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
+    items = [
+        trim_team(team_to_dict(t), include_raw=include_raw)
+        for t in (collection.value or [])[:limit]
+    ]
+    return {
+        "items": items,
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
+    }
 
 
 async def list_channels(
-    *, graph, team_id: str, limit: int = 25, page_token: str | None = None, include_raw: bool = False
+    *,
+    graph,
+    team_id: str,
+    limit: int = 25,
+    page_token: str | None = None,
+    include_raw: bool = False,
 ) -> dict:
     """List channels in a team.
 
@@ -87,13 +112,23 @@ async def list_channels(
     try:
         # /teams/{id}/channels rejects $top ("Query option 'Top' is not
         # allowed"), so fetch unpaged and cap client-side.
-        collection = await _paged(builder, page_token=page_token, request_configuration=None)
+        collection = await _paged(
+            builder, page_token=page_token, request_configuration=None
+        )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
-    items = [trim_channel(channel_to_dict(c), include_raw=include_raw) for c in (collection.value or [])[:limit]]
-    return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
+    items = [
+        trim_channel(channel_to_dict(c), include_raw=include_raw)
+        for c in (collection.value or [])[:limit]
+    ]
+    return {
+        "items": items,
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
+    }
 
 
 async def list_channel_messages(
@@ -124,18 +159,31 @@ async def list_channel_messages(
         {"items": [trimmed_chat_message, ...], "next_page_token": str | None}
     """
     limit = validate_limit(limit, maximum=_CHANNEL_MSG_MAX)
-    builder = graph.raw.teams.by_team_id(team_id).channels.by_channel_id(channel_id).messages
+    builder = (
+        graph.raw.teams.by_team_id(team_id).channels.by_channel_id(channel_id).messages
+    )
     try:
-        collection = await _paged(builder, page_token=page_token, request_configuration=_channel_messages_query(limit=limit))
+        collection = await _paged(
+            builder,
+            page_token=page_token,
+            request_configuration=_channel_messages_query(limit=limit),
+        )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
     items = [
-        trim_chat_message(chat_message_to_dict(m), include_body=include_body, include_raw=include_raw)
+        trim_chat_message(
+            chat_message_to_dict(m), include_body=include_body, include_raw=include_raw
+        )
         for m in (collection.value or [])
     ]
-    return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
+    return {
+        "items": items,
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
+    }
 
 
 async def list_message_replies(
@@ -172,28 +220,56 @@ async def list_message_replies(
         .replies
     )
     try:
-        collection = await _paged(builder, page_token=page_token, request_configuration=_replies_query(limit=limit))
+        collection = await _paged(
+            builder,
+            page_token=page_token,
+            request_configuration=_replies_query(limit=limit),
+        )
     except NotAuthenticatedError:
         raise
     except Exception as exc:  # noqa: BLE001
         raise map_kiota_error(exc) from exc
     items = [
-        trim_chat_message(chat_message_to_dict(m), include_body=include_body, include_raw=include_raw)
+        trim_chat_message(
+            chat_message_to_dict(m), include_body=include_body, include_raw=include_raw
+        )
         for m in (collection.value or [])
     ]
-    return {"items": items, "next_page_token": encode_next_link(getattr(collection, "odata_next_link", None))}
+    return {
+        "items": items,
+        "next_page_token": encode_next_link(
+            getattr(collection, "odata_next_link", None)
+        ),
+    }
 
 
 def register(mcp, *, graph) -> None:
     @mcp.tool(name="list_joined_teams", description=list_joined_teams.__doc__ or "")
-    async def _list_joined_teams(limit: int = 25, page_token: str | None = None, include_raw: bool = False):
-        return await list_joined_teams(graph=graph, limit=limit, page_token=page_token, include_raw=include_raw)
+    async def _list_joined_teams(
+        limit: int = 25, page_token: str | None = None, include_raw: bool = False
+    ):
+        return await list_joined_teams(
+            graph=graph, limit=limit, page_token=page_token, include_raw=include_raw
+        )
 
     @mcp.tool(name="list_channels", description=list_channels.__doc__ or "")
-    async def _list_channels(team_id: str, limit: int = 25, page_token: str | None = None, include_raw: bool = False):
-        return await list_channels(graph=graph, team_id=team_id, limit=limit, page_token=page_token, include_raw=include_raw)
+    async def _list_channels(
+        team_id: str,
+        limit: int = 25,
+        page_token: str | None = None,
+        include_raw: bool = False,
+    ):
+        return await list_channels(
+            graph=graph,
+            team_id=team_id,
+            limit=limit,
+            page_token=page_token,
+            include_raw=include_raw,
+        )
 
-    @mcp.tool(name="list_channel_messages", description=list_channel_messages.__doc__ or "")
+    @mcp.tool(
+        name="list_channel_messages", description=list_channel_messages.__doc__ or ""
+    )
     async def _list_channel_messages(
         team_id: str,
         channel_id: str,
@@ -203,11 +279,18 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await list_channel_messages(
-            graph=graph, team_id=team_id, channel_id=channel_id, limit=limit,
-            page_token=page_token, include_body=include_body, include_raw=include_raw,
+            graph=graph,
+            team_id=team_id,
+            channel_id=channel_id,
+            limit=limit,
+            page_token=page_token,
+            include_body=include_body,
+            include_raw=include_raw,
         )
 
-    @mcp.tool(name="list_message_replies", description=list_message_replies.__doc__ or "")
+    @mcp.tool(
+        name="list_message_replies", description=list_message_replies.__doc__ or ""
+    )
     async def _list_message_replies(
         team_id: str,
         channel_id: str,
@@ -218,6 +301,12 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await list_message_replies(
-            graph=graph, team_id=team_id, channel_id=channel_id, message_id=message_id,
-            limit=limit, page_token=page_token, include_body=include_body, include_raw=include_raw,
+            graph=graph,
+            team_id=team_id,
+            channel_id=channel_id,
+            message_id=message_id,
+            limit=limit,
+            page_token=page_token,
+            include_body=include_body,
+            include_raw=include_raw,
         )

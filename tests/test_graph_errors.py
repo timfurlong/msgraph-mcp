@@ -10,7 +10,9 @@ def test_graph_validation_error_is_runtime_error():
 
 
 def test_graph_api_error_carries_status_and_code():
-    err = errors.GraphAPIError(status=404, code="ResourceNotFound", message="No such message")
+    err = errors.GraphAPIError(
+        status=404, code="ResourceNotFound", message="No such message"
+    )
     assert err.status == 404
     assert err.code == "ResourceNotFound"
     assert err.message == "No such message"

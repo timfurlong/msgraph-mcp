@@ -88,7 +88,10 @@ def trim_event(raw: dict, *, include_body: bool, include_raw: bool) -> dict:
         "id": raw.get("id"),
         "subject": raw.get("subject"),
         "organizer": _email(raw.get("organizer")),
-        "start": {"date_time": start.get("dateTime"), "time_zone": start.get("timeZone")},
+        "start": {
+            "date_time": start.get("dateTime"),
+            "time_zone": start.get("timeZone"),
+        },
         "end": {"date_time": end.get("dateTime"), "time_zone": end.get("timeZone")},
         "location": location.get("displayName"),
         "is_all_day": bool(raw.get("isAllDay")),
@@ -157,7 +160,9 @@ def trim_calendar(raw: dict, *, include_raw: bool) -> dict:
     trimmed = {
         "id": raw.get("id"),
         "name": raw.get("name"),
-        "owner": {"name": owner.get("name"), "address": owner.get("address")} if owner else None,
+        "owner": {"name": owner.get("name"), "address": owner.get("address")}
+        if owner
+        else None,
         "can_edit": bool(raw.get("canEdit")),
         "is_default_calendar": bool(raw.get("isDefaultCalendar")),
     }
@@ -207,7 +212,9 @@ def trim_message_rule(raw: dict, *, include_raw: bool) -> dict:
     return _attach_raw(trimmed, raw, include_raw)
 
 
-def _html_to_snippet(content: str | None, content_type: str | None, *, limit: int = 280) -> str | None:
+def _html_to_snippet(
+    content: str | None, content_type: str | None, *, limit: int = 280
+) -> str | None:
     if not content:
         return None
     text = content
@@ -224,7 +231,9 @@ def _hosted_content_refs(content: str | None) -> list[dict]:
     if not content:
         return []
     # dict.fromkeys preserves first-seen order and de-dupes repeated ids.
-    return [{"hosted_content_id": hid} for hid in dict.fromkeys(_HOSTED_RE.findall(content))]
+    return [
+        {"hosted_content_id": hid} for hid in dict.fromkeys(_HOSTED_RE.findall(content))
+    ]
 
 
 def _reaction_counts(reactions: list[dict] | None) -> dict[str, int]:
@@ -286,7 +295,11 @@ def trim_chat_message(raw: dict, *, include_body: bool, include_raw: bool) -> di
         if include_body:
             entry["content"] = a.get("content")
         attachments.append(entry)
-    mentions = [m.get("mentionText") for m in (raw.get("mentions") or []) if m.get("mentionText")]
+    mentions = [
+        m.get("mentionText")
+        for m in (raw.get("mentions") or [])
+        if m.get("mentionText")
+    ]
     trimmed: dict[str, Any] = {
         "id": raw.get("id"),
         "message_type": raw.get("messageType") or "message",
@@ -299,7 +312,8 @@ def trim_chat_message(raw: dict, *, include_body: bool, include_raw: bool) -> di
         "subject": raw.get("subject"),
         # Bot/app posts often have a body that is just an <attachment> tag;
         # fall back to the card attachments' text so the snippet stays useful.
-        "snippet": _html_to_snippet(content, content_type) or _card_snippet(raw_attachments),
+        "snippet": _html_to_snippet(content, content_type)
+        or _card_snippet(raw_attachments),
         "body_type": content_type or "text",
         "attachments": attachments,
         "mentions": mentions,

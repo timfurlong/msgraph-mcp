@@ -73,7 +73,11 @@ async def test_download_from_channel_routes_correctly():
     graph = MagicMock()
     _wire_channel(graph)
     result = await teams_content.download_hosted_content(
-        graph=graph, team_id="t1", channel_id="ch1", message_id="m1", hosted_content_id="h1"
+        graph=graph,
+        team_id="t1",
+        channel_id="ch1",
+        message_id="m1",
+        hosted_content_id="h1",
     )
     graph.raw.teams.by_team_id.assert_called_once_with("t1")
     assert isinstance(result, list)
@@ -85,7 +89,10 @@ async def test_save_path_writes_file_and_returns_path(tmp_path):
     _wire_chat(graph)
     target = tmp_path / "img.png"
     result = await teams_content.download_hosted_content(
-        graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1",
+        graph=graph,
+        chat_id="c1",
+        message_id="m1",
+        hosted_content_id="h1",
         save_path=str(target),
     )
     assert isinstance(result, dict)
@@ -101,7 +108,10 @@ async def test_save_path_directory_generates_filename(tmp_path):
     graph = MagicMock()
     _wire_chat(graph)
     result = await teams_content.download_hosted_content(
-        graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1",
+        graph=graph,
+        chat_id="c1",
+        message_id="m1",
+        hosted_content_id="h1",
         save_path=str(tmp_path),
     )
     assert isinstance(result, dict)
@@ -115,7 +125,9 @@ async def test_save_path_directory_generates_filename(tmp_path):
 async def test_download_rejects_no_location():
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
-        await teams_content.download_hosted_content(graph=graph, message_id="m1", hosted_content_id="h1")
+        await teams_content.download_hosted_content(
+            graph=graph, message_id="m1", hosted_content_id="h1"
+        )
 
 
 @pytest.mark.asyncio
@@ -123,7 +135,12 @@ async def test_download_rejects_both_locations():
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
         await teams_content.download_hosted_content(
-            graph=graph, chat_id="c1", team_id="t1", channel_id="ch1", message_id="m1", hosted_content_id="h1"
+            graph=graph,
+            chat_id="c1",
+            team_id="t1",
+            channel_id="ch1",
+            message_id="m1",
+            hosted_content_id="h1",
         )
 
 

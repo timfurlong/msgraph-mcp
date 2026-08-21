@@ -21,7 +21,9 @@ def patched_pca():
         yield mock_pca
 
 
-def test_build_app_passes_tenant_authority_to_msal(fake_env, tmp_path, monkeypatch, patched_pca):
+def test_build_app_passes_tenant_authority_to_msal(
+    fake_env, tmp_path, monkeypatch, patched_pca
+):
     monkeypatch.setenv("MSGRAPH_MCP_TOKEN_CACHE_PATH", str(tmp_path / "cache.bin"))
     msal_app.build_app()
     kwargs = patched_pca.call_args.kwargs
@@ -39,7 +41,9 @@ def test_build_app_loads_existing_cache(fake_env, tmp_path, monkeypatch, patched
     assert cache.serialize().startswith("{")
 
 
-def test_build_app_tolerates_missing_cache(fake_env, tmp_path, monkeypatch, patched_pca):
+def test_build_app_tolerates_missing_cache(
+    fake_env, tmp_path, monkeypatch, patched_pca
+):
     monkeypatch.setenv(
         "MSGRAPH_MCP_TOKEN_CACHE_PATH", str(tmp_path / "does-not-exist.bin")
     )

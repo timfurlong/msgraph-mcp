@@ -38,8 +38,12 @@ def test_message_to_dict_minimal():
     msg = SimpleNamespace(
         id="m1",
         subject="Hello",
-        from_=SimpleNamespace(email_address=SimpleNamespace(name="A", address="a@x.com")),
-        to_recipients=[SimpleNamespace(email_address=SimpleNamespace(name="B", address="b@x.com"))],
+        from_=SimpleNamespace(
+            email_address=SimpleNamespace(name="A", address="a@x.com")
+        ),
+        to_recipients=[
+            SimpleNamespace(email_address=SimpleNamespace(name="B", address="b@x.com"))
+        ],
         cc_recipients=[],
         received_date_time="2026-05-19T14:00:00Z",
         sent_date_time="2026-05-19T13:59:00Z",
@@ -203,10 +207,25 @@ def _fake_chat_message():
         importance=SimpleNamespace(value="normal"),
         subject=None,
         from_=SimpleNamespace(user=SimpleNamespace(id="u1", display_name="Alice")),
-        body=SimpleNamespace(content_type=SimpleNamespace(value="html"), content="<p>hi</p>"),
-        attachments=[SimpleNamespace(id="a1", content_type="reference", content_url="https://example.com/f.docx", name="f.docx")],
+        body=SimpleNamespace(
+            content_type=SimpleNamespace(value="html"), content="<p>hi</p>"
+        ),
+        attachments=[
+            SimpleNamespace(
+                id="a1",
+                content_type="reference",
+                content_url="https://example.com/f.docx",
+                name="f.docx",
+            )
+        ],
         mentions=[SimpleNamespace(id=0, mention_text="Bob")],
-        reactions=[SimpleNamespace(reaction_type="like", created_date_time="2026-07-01T10:05:00Z", user=SimpleNamespace(user=SimpleNamespace(id="u2", display_name="Bob")))],
+        reactions=[
+            SimpleNamespace(
+                reaction_type="like",
+                created_date_time="2026-07-01T10:05:00Z",
+                user=SimpleNamespace(user=SimpleNamespace(id="u2", display_name="Bob")),
+            )
+        ],
         web_url="https://teams.example/msg/1",
         etag="1700000000000",
         additional_data={},
@@ -225,11 +244,23 @@ def test_chat_message_to_dict_core_fields():
 
 
 def test_chat_message_to_dict_handles_missing_from_and_body():
-    msg = SimpleNamespace(id="x", message_type=None, created_date_time=None,
-                          last_modified_date_time=None, deleted_date_time=None,
-                          importance=None, subject=None, from_=None, body=None,
-                          attachments=None, mentions=None, reactions=None,
-                          web_url=None, etag=None, additional_data={})
+    msg = SimpleNamespace(
+        id="x",
+        message_type=None,
+        created_date_time=None,
+        last_modified_date_time=None,
+        deleted_date_time=None,
+        importance=None,
+        subject=None,
+        from_=None,
+        body=None,
+        attachments=None,
+        mentions=None,
+        reactions=None,
+        web_url=None,
+        etag=None,
+        additional_data={},
+    )
     d = chat_message_to_dict(msg)
     assert d["from"] is None
     assert d["body"] is None
@@ -238,11 +269,18 @@ def test_chat_message_to_dict_handles_missing_from_and_body():
 
 def test_chat_to_dict_flattens_member_names():
     chat = SimpleNamespace(
-        id="c1", chat_type=SimpleNamespace(value="group"), topic="Launch",
+        id="c1",
+        chat_type=SimpleNamespace(value="group"),
+        topic="Launch",
         last_updated_date_time="2026-07-01T09:00:00Z",
         last_message_preview=SimpleNamespace(created_date_time="2026-07-03T17:46:28Z"),
-        members=[SimpleNamespace(display_name="Alice"), SimpleNamespace(display_name="Bob"), SimpleNamespace(display_name=None)],
-        web_url="https://teams.example/chat/c1", additional_data={},
+        members=[
+            SimpleNamespace(display_name="Alice"),
+            SimpleNamespace(display_name="Bob"),
+            SimpleNamespace(display_name=None),
+        ],
+        web_url="https://teams.example/chat/c1",
+        additional_data={},
     )
     d = chat_to_dict(chat)
     assert d["chatType"] == "group"
@@ -252,23 +290,38 @@ def test_chat_to_dict_flattens_member_names():
 
 def test_chat_to_dict_missing_last_message_preview_is_none():
     chat = SimpleNamespace(
-        id="c1", chat_type=SimpleNamespace(value="oneOnOne"), topic=None,
-        last_updated_date_time="2025-12-22T17:46:20Z", last_message_preview=None,
+        id="c1",
+        chat_type=SimpleNamespace(value="oneOnOne"),
+        topic=None,
+        last_updated_date_time="2025-12-22T17:46:20Z",
+        last_message_preview=None,
         members=[SimpleNamespace(display_name="Alice")],
-        web_url="u", additional_data={},
+        web_url="u",
+        additional_data={},
     )
     assert chat_to_dict(chat)["lastMessagePreview"] is None
 
 
 def test_team_to_dict():
-    team = SimpleNamespace(id="t1", display_name="Eng", description="Engineering", additional_data={})
-    assert team_to_dict(team) == {"id": "t1", "displayName": "Eng", "description": "Engineering"}
+    team = SimpleNamespace(
+        id="t1", display_name="Eng", description="Engineering", additional_data={}
+    )
+    assert team_to_dict(team) == {
+        "id": "t1",
+        "displayName": "Eng",
+        "description": "Engineering",
+    }
 
 
 def test_channel_to_dict():
-    ch = SimpleNamespace(id="ch1", display_name="General", description=None,
-                         membership_type=SimpleNamespace(value="standard"),
-                         web_url="https://teams.example/ch1", additional_data={})
+    ch = SimpleNamespace(
+        id="ch1",
+        display_name="General",
+        description=None,
+        membership_type=SimpleNamespace(value="standard"),
+        web_url="https://teams.example/ch1",
+        additional_data={},
+    )
     d = channel_to_dict(ch)
     assert d["displayName"] == "General"
     assert d["membershipType"] == "standard"

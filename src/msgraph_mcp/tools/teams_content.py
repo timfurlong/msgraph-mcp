@@ -31,16 +31,22 @@ def _sniff_content_type(data: bytes) -> str | None:
     return None
 
 
-def _hosted_content_builder(graph, *, chat_id, team_id, channel_id, message_id, hosted_content_id):
+def _hosted_content_builder(
+    graph, *, chat_id, team_id, channel_id, message_id, hosted_content_id
+):
     if chat_id is not None:
-        message = graph.raw.chats.by_chat_id(chat_id).messages.by_chat_message_id(message_id)
+        message = graph.raw.chats.by_chat_id(chat_id).messages.by_chat_message_id(
+            message_id
+        )
     else:
         message = (
             graph.raw.teams.by_team_id(team_id)
             .channels.by_channel_id(channel_id)
             .messages.by_chat_message_id(message_id)
         )
-    return message.hosted_contents.by_chat_message_hosted_content_id(hosted_content_id).content
+    return message.hosted_contents.by_chat_message_hosted_content_id(
+        hosted_content_id
+    ).content
 
 
 async def download_hosted_content(
@@ -88,15 +94,21 @@ async def download_hosted_content(
     has_team = team_id is not None
     has_channel = channel_id is not None
     if has_chat and (has_team or has_channel):
-        raise GraphValidationError("Provide either chat_id or (team_id and channel_id), not both.")
+        raise GraphValidationError(
+            "Provide either chat_id or (team_id and channel_id), not both."
+        )
     if not has_chat and not (has_team and has_channel):
         raise GraphValidationError(
             "Provide a message location: chat_id, or both team_id and channel_id."
         )
 
     builder = _hosted_content_builder(
-        graph, chat_id=chat_id, team_id=team_id, channel_id=channel_id,
-        message_id=message_id, hosted_content_id=hosted_content_id,
+        graph,
+        chat_id=chat_id,
+        team_id=team_id,
+        channel_id=channel_id,
+        message_id=message_id,
+        hosted_content_id=hosted_content_id,
     )
     try:
         data = await builder.get()
@@ -133,7 +145,10 @@ async def download_hosted_content(
 
 
 def register(mcp, *, graph) -> None:
-    @mcp.tool(name="download_hosted_content", description=download_hosted_content.__doc__ or "")
+    @mcp.tool(
+        name="download_hosted_content",
+        description=download_hosted_content.__doc__ or "",
+    )
     async def _download_hosted_content(
         message_id: str,
         hosted_content_id: str,
@@ -144,7 +159,12 @@ def register(mcp, *, graph) -> None:
         include_raw: bool = False,
     ):
         return await download_hosted_content(
-            graph=graph, message_id=message_id, hosted_content_id=hosted_content_id,
-            chat_id=chat_id, team_id=team_id, channel_id=channel_id,
-            save_path=save_path, include_raw=include_raw,
+            graph=graph,
+            message_id=message_id,
+            hosted_content_id=hosted_content_id,
+            chat_id=chat_id,
+            team_id=team_id,
+            channel_id=channel_id,
+            save_path=save_path,
+            include_raw=include_raw,
         )

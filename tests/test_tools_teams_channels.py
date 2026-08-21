@@ -12,31 +12,48 @@ def _fake_collection(items, next_link=None):
 
 
 def _fake_team(id_="t1"):
-    return SimpleNamespace(id=id_, display_name="Eng", description="Engineering", additional_data={})
+    return SimpleNamespace(
+        id=id_, display_name="Eng", description="Engineering", additional_data={}
+    )
 
 
 def _fake_channel(id_="ch1"):
-    return SimpleNamespace(id=id_, display_name="General", description=None,
-                           membership_type=SimpleNamespace(value="standard"),
-                           web_url="https://teams.example/ch1", additional_data={})
+    return SimpleNamespace(
+        id=id_,
+        display_name="General",
+        description=None,
+        membership_type=SimpleNamespace(value="standard"),
+        web_url="https://teams.example/ch1",
+        additional_data={},
+    )
 
 
 def _fake_msg(id_="m1"):
     return SimpleNamespace(
-        id=id_, message_type=SimpleNamespace(value="message"),
-        created_date_time="2026-07-01T10:00:00Z", last_modified_date_time="2026-07-01T10:00:00Z",
-        deleted_date_time=None, importance=SimpleNamespace(value="normal"), subject="Post",
+        id=id_,
+        message_type=SimpleNamespace(value="message"),
+        created_date_time="2026-07-01T10:00:00Z",
+        last_modified_date_time="2026-07-01T10:00:00Z",
+        deleted_date_time=None,
+        importance=SimpleNamespace(value="normal"),
+        subject="Post",
         from_=SimpleNamespace(user=SimpleNamespace(id="u1", display_name="Alice")),
         body=SimpleNamespace(content_type=SimpleNamespace(value="text"), content="hi"),
-        attachments=[], mentions=[], reactions=[], web_url="https://teams.example/msg/1",
-        etag="1", additional_data={},
+        attachments=[],
+        mentions=[],
+        reactions=[],
+        web_url="https://teams.example/msg/1",
+        etag="1",
+        additional_data={},
     )
 
 
 @pytest.mark.asyncio
 async def test_list_joined_teams():
     graph = MagicMock()
-    graph.raw.me.joined_teams.get = AsyncMock(return_value=_fake_collection([_fake_team()]))
+    graph.raw.me.joined_teams.get = AsyncMock(
+        return_value=_fake_collection([_fake_team()])
+    )
     result = await teams_channels.list_joined_teams(graph=graph)
     assert result["items"][0]["display_name"] == "Eng"
 
@@ -45,7 +62,9 @@ async def test_list_joined_teams():
 async def test_list_joined_teams_sends_no_query_params():
     # /me/joinedTeams rejects $top, so the request must carry no query params.
     graph = MagicMock()
-    graph.raw.me.joined_teams.get = AsyncMock(return_value=_fake_collection([_fake_team()]))
+    graph.raw.me.joined_teams.get = AsyncMock(
+        return_value=_fake_collection([_fake_team()])
+    )
     await teams_channels.list_joined_teams(graph=graph, limit=5)
     graph.raw.me.joined_teams.get.assert_awaited_once_with(request_configuration=None)
 
@@ -74,7 +93,9 @@ async def test_list_channels_sends_no_query_params():
 async def test_list_channels_caps_results_client_side():
     graph = MagicMock()
     channels = MagicMock()
-    channels.get = AsyncMock(return_value=_fake_collection([_fake_channel() for _ in range(4)]))
+    channels.get = AsyncMock(
+        return_value=_fake_collection([_fake_channel() for _ in range(4)])
+    )
     graph.raw.teams.by_team_id = MagicMock(return_value=MagicMock(channels=channels))
     result = await teams_channels.list_channels(graph=graph, team_id="t1", limit=2)
     assert len(result["items"]) == 2
@@ -101,7 +122,9 @@ async def test_list_channel_messages_routes_and_trims():
     team.channels.by_channel_id = MagicMock(return_value=channel)
     graph.raw.teams.by_team_id = MagicMock(return_value=team)
 
-    result = await teams_channels.list_channel_messages(graph=graph, team_id="t1", channel_id="ch1")
+    result = await teams_channels.list_channel_messages(
+        graph=graph, team_id="t1", channel_id="ch1"
+    )
 
     graph.raw.teams.by_team_id.assert_called_once_with("t1")
     team.channels.by_channel_id.assert_called_once_with("ch1")
@@ -112,7 +135,9 @@ async def test_list_channel_messages_routes_and_trims():
 async def test_list_channel_messages_caps_limit_at_50():
     graph = MagicMock()
     with pytest.raises(GraphValidationError):
-        await teams_channels.list_channel_messages(graph=graph, team_id="t1", channel_id="ch1", limit=51)
+        await teams_channels.list_channel_messages(
+            graph=graph, team_id="t1", channel_id="ch1", limit=51
+        )
 
 
 @pytest.mark.asyncio

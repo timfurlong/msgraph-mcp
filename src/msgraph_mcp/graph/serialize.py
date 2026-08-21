@@ -38,7 +38,10 @@ def user_to_dict(user: Any) -> dict:
 def email_address_to_dict(addr: Any) -> dict | None:
     if addr is None:
         return None
-    return {"name": getattr(addr, "name", None), "address": getattr(addr, "address", None)}
+    return {
+        "name": getattr(addr, "name", None),
+        "address": getattr(addr, "address", None),
+    }
 
 
 def recipient_to_dict(rec: Any) -> dict | None:
@@ -48,7 +51,9 @@ def recipient_to_dict(rec: Any) -> dict | None:
 
 
 def _recipients(recs: list[Any] | None) -> list[dict]:
-    return [r for r in (recipient_to_dict(rec) for rec in (recs or [])) if r is not None]
+    return [
+        r for r in (recipient_to_dict(rec) for rec in (recs or [])) if r is not None
+    ]
 
 
 def _body_to_dict(body: Any) -> dict | None:
@@ -70,7 +75,9 @@ def message_to_dict(msg: Any) -> dict:
     base = {
         "id": getattr(msg, "id", None),
         "subject": getattr(msg, "subject", None),
-        "from": recipient_to_dict(getattr(msg, "from_", None) or getattr(msg, "sender", None)),
+        "from": recipient_to_dict(
+            getattr(msg, "from_", None) or getattr(msg, "sender", None)
+        ),
         "toRecipients": _recipients(getattr(msg, "to_recipients", None)),
         "ccRecipients": _recipients(getattr(msg, "cc_recipients", None)),
         "bccRecipients": _recipients(getattr(msg, "bcc_recipients", None)),
@@ -87,7 +94,9 @@ def message_to_dict(msg: Any) -> dict:
         "conversationId": getattr(msg, "conversation_id", None),
         "webLink": getattr(msg, "web_link", None),
         "parentFolderId": getattr(msg, "parent_folder_id", None),
-        "inferenceClassification": _enum_value(getattr(msg, "inference_classification", None)),
+        "inferenceClassification": _enum_value(
+            getattr(msg, "inference_classification", None)
+        ),
     }
     return {**_additional(msg), **base}
 
@@ -144,7 +153,9 @@ def event_to_dict(evt: Any) -> dict:
         status = getattr(a, "status", None)
         attendees.append(
             {
-                "emailAddress": email_address_to_dict(getattr(a, "email_address", None)),
+                "emailAddress": email_address_to_dict(
+                    getattr(a, "email_address", None)
+                ),
                 "type": _enum_value(getattr(a, "type", None)),
                 "status": {"response": _enum_value(getattr(status, "response", None))}
                 if status is not None
@@ -163,11 +174,15 @@ def event_to_dict(evt: Any) -> dict:
             "dateTime": getattr(end, "date_time", None) if end else None,
             "timeZone": getattr(end, "time_zone", None) if end else None,
         },
-        "location": {"displayName": getattr(location, "display_name", None)} if location else {"displayName": None},
+        "location": {"displayName": getattr(location, "display_name", None)}
+        if location
+        else {"displayName": None},
         "isAllDay": bool(getattr(evt, "is_all_day", False)),
         "isCancelled": bool(getattr(evt, "is_cancelled", False)),
         "isOnlineMeeting": bool(getattr(evt, "is_online_meeting", False)),
-        "onlineMeeting": {"joinUrl": getattr(online, "join_url", None)} if online else None,
+        "onlineMeeting": {"joinUrl": getattr(online, "join_url", None)}
+        if online
+        else None,
         "attendees": attendees,
         "bodyPreview": getattr(evt, "body_preview", None),
         "body": _body_to_dict(getattr(evt, "body", None)),
@@ -184,7 +199,10 @@ def message_rule_predicates_to_dict(pred: Any) -> dict | None:
         return None
     base = {
         "bodyContains": list(getattr(pred, "body_contains", None) or []) or None,
-        "bodyOrSubjectContains": list(getattr(pred, "body_or_subject_contains", None) or []) or None,
+        "bodyOrSubjectContains": list(
+            getattr(pred, "body_or_subject_contains", None) or []
+        )
+        or None,
         "categories": list(getattr(pred, "categories", None) or []) or None,
         "fromAddresses": _recipients(getattr(pred, "from_addresses", None)),
         "hasAttachments": getattr(pred, "has_attachments", None),
@@ -205,10 +223,13 @@ def message_rule_actions_to_dict(actions: Any) -> dict | None:
     if actions is None:
         return None
     base = {
-        "assignCategories": list(getattr(actions, "assign_categories", None) or []) or None,
+        "assignCategories": list(getattr(actions, "assign_categories", None) or [])
+        or None,
         "copyToFolder": getattr(actions, "copy_to_folder", None),
         "delete": getattr(actions, "delete", None),
-        "forwardAsAttachmentTo": _recipients(getattr(actions, "forward_as_attachment_to", None)),
+        "forwardAsAttachmentTo": _recipients(
+            getattr(actions, "forward_as_attachment_to", None)
+        ),
         "forwardTo": _recipients(getattr(actions, "forward_to", None)),
         "markAsRead": getattr(actions, "mark_as_read", None),
         "markImportance": _enum_value(getattr(actions, "mark_importance", None)),
@@ -228,8 +249,12 @@ def message_rule_to_dict(rule: Any) -> dict:
         "isEnabled": bool(getattr(rule, "is_enabled", False)),
         "hasError": bool(getattr(rule, "has_error", False)),
         "isReadOnly": bool(getattr(rule, "is_read_only", False)),
-        "conditions": message_rule_predicates_to_dict(getattr(rule, "conditions", None)),
-        "exceptions": message_rule_predicates_to_dict(getattr(rule, "exceptions", None)),
+        "conditions": message_rule_predicates_to_dict(
+            getattr(rule, "conditions", None)
+        ),
+        "exceptions": message_rule_predicates_to_dict(
+            getattr(rule, "exceptions", None)
+        ),
         "actions": message_rule_actions_to_dict(getattr(rule, "actions", None)),
     }
     return {**_additional(rule), **base}
@@ -289,9 +314,16 @@ def chat_message_to_dict(msg: Any) -> dict:
         "subject": getattr(msg, "subject", None),
         "from": _identity_set_user(getattr(msg, "from_", None)),
         "body": _body_to_dict(getattr(msg, "body", None)),
-        "attachments": [_chat_attachment_to_dict(a) for a in (getattr(msg, "attachments", None) or [])],
-        "mentions": [_chat_mention_to_dict(m) for m in (getattr(msg, "mentions", None) or [])],
-        "reactions": [_chat_reaction_to_dict(r) for r in (getattr(msg, "reactions", None) or [])],
+        "attachments": [
+            _chat_attachment_to_dict(a)
+            for a in (getattr(msg, "attachments", None) or [])
+        ],
+        "mentions": [
+            _chat_mention_to_dict(m) for m in (getattr(msg, "mentions", None) or [])
+        ],
+        "reactions": [
+            _chat_reaction_to_dict(r) for r in (getattr(msg, "reactions", None) or [])
+        ],
         "webUrl": getattr(msg, "web_url", None),
         "etag": getattr(msg, "etag", None),
     }
@@ -321,7 +353,9 @@ def chat_to_dict(chat: Any) -> dict:
         "chatType": _enum_value(getattr(chat, "chat_type", None)),
         "topic": getattr(chat, "topic", None),
         "lastUpdatedDateTime": getattr(chat, "last_updated_date_time", None),
-        "lastMessagePreview": _chat_message_info_to_dict(getattr(chat, "last_message_preview", None)),
+        "lastMessagePreview": _chat_message_info_to_dict(
+            getattr(chat, "last_message_preview", None)
+        ),
         "members": _member_display_names(getattr(chat, "members", None)),
         "webUrl": getattr(chat, "web_url", None),
     }
