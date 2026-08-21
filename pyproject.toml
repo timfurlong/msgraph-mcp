@@ -2,15 +2,34 @@
 name = "msgraph-mcp"
 version = "0.3.0"
 description = "MCP server for Microsoft Graph: Outlook mail and calendar, plus read-only Microsoft Teams"
+readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
+authors = [{ name = "Tim Furlong" }]
+keywords = ["mcp", "model-context-protocol", "microsoft-graph", "outlook", "teams", "email", "calendar"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Email",
+    "Topic :: Office/Business :: Scheduling",
+]
 dependencies = [
     "mcp>=1.0",
     "msgraph-sdk>=1.0",
     "msal>=1.31",
     "python-dotenv>=1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/timfurlong/msgraph-mcp"
+Repository = "https://github.com/timfurlong/msgraph-mcp"
+Issues = "https://github.com/timfurlong/msgraph-mcp/issues"
 
 [project.scripts]
 msgraph-mcp = "msgraph_mcp.server:main"

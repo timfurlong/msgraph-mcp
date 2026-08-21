@@ -1,5 +1,7 @@
 # MSGraph MCP
 
+<!-- mcp-name: io.github.timfurlong/msgraph-mcp -->
+
 A Model Context Protocol (MCP) server for **Microsoft Graph**. It exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. Acts as the signed-in user (delegated permissions, MSAL device code flow).
 
 > Formerly published as `outlook-mcp`. Renamed because the scope grew beyond Outlook (Teams today, potentially other Graph surfaces later). Outlook mail and calendar remain first-class capabilities. See [Migrating from outlook-mcp](#migrating-from-outlook-mcp).
