@@ -44,3 +44,41 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  mcp-registry:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # required for MCP registry OIDC login
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Set version in server.json from tag
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp && mv server.tmp server.json
+
+      - name: Wait for package on PyPI
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          for i in $(seq 1 30); do
+            if curl -sf "https://pypi.org/pypi/msgraph-mcp-server/$VERSION/json" > /dev/null; then
+              echo "PyPI has $VERSION"
+              exit 0
+            fi
+            echo "waiting for PyPI ($i)..."
+            sleep 10
+          done
+          echo "Timed out waiting for msgraph-mcp-server $VERSION on PyPI" >&2
+          exit 1
+
+      - name: Authenticate to MCP registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP registry
+        run: ./mcp-publisher publish

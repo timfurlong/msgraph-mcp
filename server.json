@@ -1,0 +1,42 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.timfurlong/msgraph-mcp",
+  "title": "MSGraph MCP",
+  "description": "MCP server for Microsoft Graph: Outlook mail and calendar, plus read-only Microsoft Teams",
+  "repository": {
+    "url": "https://github.com/timfurlong/msgraph-mcp",
+    "source": "github"
+  },
+  "version": "0.3.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "msgraph-mcp-server",
+      "version": "0.3.1",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "MSGRAPH_MCP_CLIENT_ID",
+          "description": "Client ID of your Entra (Azure AD) app registration",
+          "isRequired": true,
+          "isSecret": false
+        },
+        {
+          "name": "MSGRAPH_MCP_TENANT_ID",
+          "description": "Entra tenant ID (or 'common' / 'organizations' / 'consumers')",
+          "isRequired": true,
+          "isSecret": false
+        },
+        {
+          "name": "MSGRAPH_MCP_TOKEN_CACHE_PATH",
+          "description": "Override the token cache location (default ~/.msgraph-mcp/token_cache.bin)",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
