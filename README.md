@@ -2,9 +2,12 @@
 
 <!-- mcp-name: io.github.timfurlong/msgraph-mcp -->
 
-A Model Context Protocol (MCP) server for **Microsoft Graph**. It exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. Acts as the signed-in user (delegated permissions, MSAL device code flow).
+[![PyPI](https://img.shields.io/pypi/v/msgraph-mcp-server)](https://pypi.org/project/msgraph-mcp-server/)
+[![Python versions](https://img.shields.io/pypi/pyversions/msgraph-mcp-server)](https://pypi.org/project/msgraph-mcp-server/)
+[![CI](https://github.com/timfurlong/msgraph-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/timfurlong/msgraph-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> Formerly published as `outlook-mcp`. Renamed because the scope grew beyond Outlook (Teams today, potentially other Graph surfaces later). Outlook mail and calendar remain first-class capabilities. See [Migrating from outlook-mcp](#migrating-from-outlook-mcp).
+A Model Context Protocol (MCP) server for **Microsoft Graph**. It exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. Acts as the signed-in user (delegated permissions, MSAL device code flow).
 
 ## What it does
 
@@ -27,43 +30,62 @@ Every tool that returns objects accepts `include_raw=true` to also include the f
 
 List/search tools support pagination via `limit` (1-100, default 25) and `page_token`.
 
-## Prerequisites
-
-- Python ≥ 3.11
-- `uv`: https://docs.astral.sh/uv/
-- An Entra (Azure AD) app registration with the right permissions (see "Entra setup" below)
-
 ## Install
 
-From PyPI (package `msgraph-mcp-server`; the commands it installs are `msgraph-mcp` and `msgraph-mcp-login`):
+The package is `msgraph-mcp-server`; it installs two commands, `msgraph-mcp` (the server) and `msgraph-mcp-login` (one-time sign-in).
 
 ```bash
 uv tool install msgraph-mcp-server   # or: pip install msgraph-mcp-server
 ```
 
-Then use `msgraph-mcp-login` / `msgraph-mcp` directly wherever the quickstart below says `uv run ...`, and wire the host with `claude mcp add msgraph -- msgraph-mcp`.
+You need Python ≥ 3.11 and an Entra (Azure AD) app registration (see [Entra setup](#entra-setup)).
 
-## Quickstart (from source)
+## Setup
+
+**1. Set your Entra app credentials.**
 
 ```bash
-# 1. Install dependencies
-uv sync
-
-# 2. Configure environment
-cp .env.example .env
-# Fill in MSGRAPH_MCP_CLIENT_ID and MSGRAPH_MCP_TENANT_ID
-
-# 3. One-time sign-in (device code flow)
-uv run msgraph-mcp-login
-# Follow the prompt: visit the URL, enter the code, complete sign-in.
-# A token cache is written to ~/.msgraph-mcp/token_cache.bin (mode 0600).
-
-# 4. Wire the MCP into your host
-# - Claude Code:
-claude mcp add msgraph -- uv --directory "$(pwd)" run msgraph-mcp
-
-# - Anything else: configure the host to launch `uv run msgraph-mcp` (stdio).
+export MSGRAPH_MCP_CLIENT_ID=<your app's client ID>
+export MSGRAPH_MCP_TENANT_ID=<your tenant ID>
 ```
+
+**2. Sign in once** (device code flow — visit the URL it prints, enter the code):
+
+```bash
+msgraph-mcp-login
+```
+
+A token cache is written to `~/.msgraph-mcp/token_cache.bin` (mode `0600`).
+
+**3. Wire the server into your MCP host.**
+
+Claude Code:
+
+```bash
+claude mcp add msgraph \
+  --env MSGRAPH_MCP_CLIENT_ID=$MSGRAPH_MCP_CLIENT_ID \
+  --env MSGRAPH_MCP_TENANT_ID=$MSGRAPH_MCP_TENANT_ID \
+  -- uvx msgraph-mcp-server
+```
+
+Any other host — launch it over stdio:
+
+```json
+{
+  "mcpServers": {
+    "msgraph": {
+      "command": "uvx",
+      "args": ["msgraph-mcp-server"],
+      "env": {
+        "MSGRAPH_MCP_CLIENT_ID": "<your app's client ID>",
+        "MSGRAPH_MCP_TENANT_ID": "<your tenant ID>"
+      }
+    }
+  }
+}
+```
+
+`uvx` runs the published package without installing it; if you used `uv tool install` or `pip install` above, use `msgraph-mcp` as the command instead.
 
 ## Entra setup
 
@@ -85,7 +107,7 @@ The app registration (e.g. "MSGraph MCP") requires:
   - `ChannelMessage.Read.All` (Teams)
 - Admin consent: required for `ChannelMessage.Read.All` (always), plus the `*.Shared` permissions if your tenant requires it.
 
-> If you signed in before any of these scopes were added to the app (for example `MailboxSettings.ReadWrite`, or the Teams scopes), re-run `uv run msgraph-mcp-login` so the cached token picks up the new scopes. Without them, calls needing the missing scope fail with a consent error.
+> If you signed in before any of these scopes were added to the app (for example `MailboxSettings.ReadWrite`, or the Teams scopes), re-run `msgraph-mcp-login` so the cached token picks up the new scopes. Without them, calls needing the missing scope fail with a consent error.
 
 The CLI uses public-client device code flow — **no client secret** is needed or stored.
 
@@ -97,29 +119,7 @@ The CLI uses public-client device code flow — **no client secret** is needed o
 | `MSGRAPH_MCP_TENANT_ID`        | yes      | —                                | Tenant ID (single-tenant authority) |
 | `MSGRAPH_MCP_TOKEN_CACHE_PATH` | no       | `~/.msgraph-mcp/token_cache.bin` | Override token cache file location  |
 
-Process env wins; `.env` at the repo root is loaded as a dev fallback.
-
-Legacy `OUTLOOK_MCP_*` names are honored as a fallback for each variable (the `MSGRAPH_MCP_*` name wins when both are set).
-
-## Migrating from outlook-mcp
-
-This project was named `outlook-mcp` through v0.2.0. What changed in the rename:
-
-| Old                                | New                                |
-| ---------------------------------- | ---------------------------------- |
-| package `outlook-mcp`              | package `msgraph-mcp`              |
-| module `outlook_mcp`               | module `msgraph_mcp`               |
-| `uv run outlook-mcp`               | `uv run msgraph-mcp`               |
-| `uv run outlook-mcp-login`         | `uv run msgraph-mcp-login`         |
-| `OUTLOOK_MCP_*` env vars           | `MSGRAPH_MCP_*` env vars           |
-| `~/.outlook-mcp/token_cache.bin`   | `~/.msgraph-mcp/token_cache.bin`   |
-
-Backward compatibility, so an existing setup keeps working without re-authenticating:
-
-- `OUTLOOK_MCP_*` env vars are still read as a fallback.
-- If `~/.msgraph-mcp/token_cache.bin` does not exist but `~/.outlook-mcp/token_cache.bin` does, the legacy cache is used. To move to the new location: `mv ~/.outlook-mcp ~/.msgraph-mcp`.
-
-You do need to update anything that launches the server by script name (MCP host configs): `outlook-mcp` → `msgraph-mcp`.
+Process env wins; a `.env` file in the working directory is loaded as a dev fallback. The legacy `OUTLOOK_MCP_*` name for each variable is still honored as a fallback (the `MSGRAPH_MCP_*` name wins when both are set).
 
 ## Security
 
@@ -177,21 +177,34 @@ Setup:
 - Channel message and reply pages are capped at 50 by Graph.
 - SharePoint/OneDrive-backed file attachments are not downloadable here. In Teams, shared files are attachments whose `contentUrl` points into SharePoint, which is a different Graph surface (needs `Files.Read.All` / `Sites.Read.All` and the driveItem APIs). `download_hosted_content` covers inline hosted content (images), not shared files. This is deferred.
 
-## Future work
+## Troubleshooting
 
-Not implemented; reasonable additions:
-
-- **Graph `$batch` requests.** Performance optimization that bundles multiple Graph calls into one HTTP round-trip; would speed up multi-step workflows but adds complexity. Defer until profiling proves the win.
-
-Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote, multi-account switching, change-notification subscriptions, force-delete of non-empty folders.
+| Symptom                                                                                                     | Fix                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NotAuthenticatedError: Not authenticated. Run \`msgraph-mcp-login\`...`                                    | Run `msgraph-mcp-login`.                                                                                                                                                                                                                                      |
+| `ConfigError: Missing required env var: MSGRAPH_MCP_CLIENT_ID`                                              | Set the var in your shell, your `.env`, or your MCP host's env config.                                                                                                                                                                                        |
+| `Graph API 403: ErrorAccessDenied — ...`                                                                    | Permission mismatch on the Entra app. Verify the delegated permissions list above and re-consent.                                                                                                                                                             |
+| `Graph API 400: BadRequest — Syntax error: character ... is not valid at position N` from `search_messages` | The query is passed to Graph's `$search` as-is. Wrap literal/multi-character tokens in double quotes (e.g. `"weekly report"`), or use KQL fielded forms (e.g. `from:alice subject:"report"`). Bare alphanumeric strings with embedded digits are invalid KQL. |
+| Server boots but tools 404 in the host                                                                      | Confirm the host is launching the server over stdio and that it can find the `uvx` / `msgraph-mcp` binary on its `PATH`.                                                                                                                                      |
 
 ## Development
 
 ```bash
-# Run unit tests
+git clone https://github.com/timfurlong/msgraph-mcp
+cd msgraph-mcp
+uv sync
+cp .env.example .env   # fill in MSGRAPH_MCP_CLIENT_ID and MSGRAPH_MCP_TENANT_ID
+
+uv run msgraph-mcp-login   # one-time sign-in
+```
+
+Point an MCP host at the working tree with `claude mcp add msgraph -- uv --directory "$(pwd)" run msgraph-mcp`.
+
+```bash
+# Unit tests
 uv run pytest
 
-# Run unit + live integration smoke (requires a valid token cache)
+# Unit + live integration smoke (requires a valid token cache)
 MSGRAPH_MCP_INTEGRATION=1 uv run pytest
 
 # Type check
@@ -201,16 +214,12 @@ uv run pyright src tests
 uv run ruff check .
 ```
 
-## Troubleshooting
+Releases are tag-driven: pushing a `vX.Y.Z` tag matching the `pyproject.toml` version runs the checks, publishes to PyPI via Trusted Publishing, and updates the MCP registry entry.
 
-| Symptom                                                                                                     | Fix                                                                                                                                                                                                                                                           |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NotAuthenticatedError: Not authenticated. Run \`msgraph-mcp-login\`...`                                    | Run `uv run msgraph-mcp-login`.                                                                                                                                                                                                                               |
-| `ConfigError: Missing required env var: MSGRAPH_MCP_CLIENT_ID`                                              | Set the var in `.env` or in your MCP host's env config.                                                                                                                                                                                                       |
-| `Graph API 403: ErrorAccessDenied — ...`                                                                    | Permission mismatch on the Entra app. Verify the delegated permissions list above and re-consent.                                                                                                                                                             |
-| `Graph API 400: BadRequest — Syntax error: character ... is not valid at position N` from `search_messages` | The query is passed to Graph's `$search` as-is. Wrap literal/multi-character tokens in double quotes (e.g. `"weekly report"`), or use KQL fielded forms (e.g. `from:alice subject:"report"`). Bare alphanumeric strings with embedded digits are invalid KQL. |
-| Server boots but tools 404 in the host                                                                      | Confirm the host is launching `uv run msgraph-mcp` with the right working directory.                                                                                                                                                                          |
+## Future work
 
----
+Not implemented; reasonable additions:
 
-Spec: `docs/specs/2026-05-19-outlook-mcp-design.md` (gitignored — local working doc).
+- **Graph `$batch` requests.** Performance optimization that bundles multiple Graph calls into one HTTP round-trip; would speed up multi-step workflows but adds complexity. Defer until profiling proves the win.
+
+Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote, multi-account switching, change-notification subscriptions, force-delete of non-empty folders.
