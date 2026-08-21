@@ -1,5 +1,5 @@
 [project]
-name = "msgraph-mcp"
+name = "msgraph-mcp-server"
 version = "0.3.0"
 description = "MCP server for Microsoft Graph: Outlook mail and calendar, plus read-only Microsoft Teams"
 readme = "README.md"

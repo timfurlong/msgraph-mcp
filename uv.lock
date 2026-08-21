@@ -826,7 +826,7 @@ wheels = [
 ]
 
 [[package]]
-name = "msgraph-mcp"
+name = "msgraph-mcp-server"
 version = "0.3.0"
 source = { editable = "." }
 dependencies = [

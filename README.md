@@ -33,7 +33,17 @@ List/search tools support pagination via `limit` (1-100, default 25) and `page_t
 - `uv`: https://docs.astral.sh/uv/
 - An Entra (Azure AD) app registration with the right permissions (see "Entra setup" below)
 
-## Quickstart
+## Install
+
+From PyPI (package `msgraph-mcp-server`; the commands it installs are `msgraph-mcp` and `msgraph-mcp-login`):
+
+```bash
+uv tool install msgraph-mcp-server   # or: pip install msgraph-mcp-server
+```
+
+Then use `msgraph-mcp-login` / `msgraph-mcp` directly wherever the quickstart below says `uv run ...`, and wire the host with `claude mcp add msgraph -- msgraph-mcp`.
+
+## Quickstart (from source)
 
 ```bash
 # 1. Install dependencies
