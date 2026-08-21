@@ -5,13 +5,89 @@
 [![PyPI](https://img.shields.io/pypi/v/msgraph-mcp-server)](https://pypi.org/project/msgraph-mcp-server/)
 [![Python versions](https://img.shields.io/pypi/pyversions/msgraph-mcp-server)](https://pypi.org/project/msgraph-mcp-server/)
 [![CI](https://github.com/timfurlong/msgraph-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/timfurlong/msgraph-mcp/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/timfurlong/msgraph-mcp/blob/main/LICENSE)
 
-A Model Context Protocol (MCP) server for **Microsoft Graph**. It exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. Acts as the signed-in user (delegated permissions, MSAL device code flow).
+A Model Context Protocol (MCP) server for **Microsoft Graph**. It exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. It acts as the signed-in user, using delegated permissions and MSAL device code flow, so it can only reach what that user can reach.
 
-## What it does
+## Install
 
-Workflow-oriented tools covering common mail, calendar, and read-only Teams operations:
+You need Python ≥ 3.11 and an Entra (Azure AD) app registration. The app registration takes about ten minutes and may need an administrator, so do that first: see the Entra setup section below.
+
+```bash
+uv tool install msgraph-mcp-server   # or: pip install msgraph-mcp-server
+```
+
+The package is `msgraph-mcp-server`. It installs three commands: `msgraph-mcp` and its alias `msgraph-mcp-server`, which both start the stdio server, plus `msgraph-mcp-login` for the one-time sign-in.
+
+## Setup
+
+**1. Set your Entra app credentials.**
+
+```bash
+export MSGRAPH_MCP_CLIENT_ID=<your app's client ID>
+export MSGRAPH_MCP_TENANT_ID=<your tenant ID>   # or: common / organizations / consumers
+```
+
+**2. Sign in once.** This prints a URL and a code; visit the URL and enter the code. No client secret is involved or stored.
+
+```bash
+msgraph-mcp-login
+# running via uvx instead of installing: uvx --from msgraph-mcp-server msgraph-mcp-login
+```
+
+A token cache is written to `~/.msgraph-mcp/token_cache.bin`.
+
+**3. Wire the server into your MCP host.**
+
+Claude Code:
+
+```bash
+claude mcp add msgraph \
+  --env MSGRAPH_MCP_CLIENT_ID=$MSGRAPH_MCP_CLIENT_ID \
+  --env MSGRAPH_MCP_TENANT_ID=$MSGRAPH_MCP_TENANT_ID \
+  -- msgraph-mcp
+```
+
+Any other host, over stdio:
+
+```json
+{
+  "mcpServers": {
+    "msgraph": {
+      "command": "msgraph-mcp",
+      "args": [],
+      "env": {
+        "MSGRAPH_MCP_CLIENT_ID": "<your app's client ID>",
+        "MSGRAPH_MCP_TENANT_ID": "<your tenant ID>"
+      }
+    }
+  }
+}
+```
+
+To run without installing, use `"command": "uvx"` with `"args": ["msgraph-mcp-server"]`. Note that `uvx` does not put `msgraph-mcp-login` on your `PATH`, so sign in with the `uvx --from` form shown in step 2.
+
+`MSGRAPH_MCP_TOKEN_CACHE_PATH` optionally overrides the cache location. All three variables can also come from a `.env` file in the working directory; the process environment wins over it.
+
+## Entra setup
+
+The app registration requires:
+
+- **Account type:** single tenant (multi-tenant works too; set `MSGRAPH_MCP_TENANT_ID` to `common`, `organizations`, or `consumers`)
+- **Redirect URI (public client):** `https://login.microsoftonline.com/common/oauth2/nativeclient`
+- **Allow public client flows:** Yes, under Authentication → Advanced settings. Device code flow fails without it.
+- **Delegated permissions** (Microsoft Graph):
+  - Mail: `Mail.ReadWrite`, `Mail.ReadWrite.Shared`, `Mail.Send`
+  - Rules: `MailboxSettings.ReadWrite` (Graph requires this for the `messageRules` endpoints)
+  - Calendar: `Calendars.ReadWrite`, `Calendars.ReadWrite.Shared`
+  - Identity: `User.Read`
+  - Teams: `Chat.Read`, `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`
+
+`ChannelMessage.Read.All` always needs tenant admin consent, and the `*.Shared` permissions may need it depending on your tenant.
+
+> **The scope list is all-or-nothing.** Sign-in requests every scope at once, so without admin consent for `ChannelMessage.Read.All` the login fails outright and mail and calendar are unavailable too. For the same reason, adding scopes later means re-running `msgraph-mcp-login`; until you do, *every* tool fails with `NotAuthenticatedError`, not just the ones needing the new scope.
+
+## Tools
 
 | Group          | Tools                                                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -25,199 +101,37 @@ Workflow-oriented tools covering common mail, calendar, and read-only Teams oper
 | Calendar       | `list_calendars`, `list_events`, `get_event`, `create_event`, `update_event`, `delete_event`, `cancel_event`, `respond_to_event`, `find_meeting_times` |
 | Teams (read)   | `list_chats`, `list_chat_messages`, `list_joined_teams`, `list_channels`, `list_channel_messages`, `list_message_replies`, `download_hosted_content`      |
 
-Every tool that touches a mailbox or calendar accepts an optional `mailbox` argument (email or user ID) to target shared mailboxes/calendars. Omit it to use the signed-in user's own mailbox.
+Behavior shared across tools:
 
-The `batch_*` tools apply one action to up to 1000 messages through Graph's `$batch` endpoint, and return a per-message result plus a `{total, succeeded, failed}` summary.
+- **Trimmed responses.** Results are reshaped for agents, and message and event bodies are replaced by a short `snippet`. Pass `include_body=true` to `get_message`, `list_chat_messages`, `list_channel_messages`, or `list_message_replies` for the full body, which for Teams is also what surfaces Adaptive Card content. Pass `include_raw=true` to any tool returning a Graph object to get the full payload alongside the trimmed one; the `batch_*` tools return per-message status only and do not accept it.
+- **Other mailboxes.** Every mail and calendar tool takes an optional `mailbox` (email or user ID) to target a shared or delegated mailbox. Omit it for your own. Teams tools are read-only, cover only your own chats, and take no `mailbox`.
+- **Pagination.** List and search tools take `limit` (1-100, default 25) and `page_token`, except `list_channel_messages` and `list_message_replies`, which Graph caps at 50. `list_folders`, `list_rules`, `list_attachments`, and `list_calendars` return the whole collection and take neither. On `list_joined_teams` and `list_channels`, `limit` is applied after fetching because Graph rejects `$top` there, so it saves tokens rather than round-trips.
+- **Batch actions.** The `batch_*` tools apply one action to up to 1000 messages via Graph's `$batch` endpoint, returning a per-message result plus a `{total, succeeded, failed}` summary.
+- **Downloads.** `download_attachment` and `download_hosted_content` return images as native MCP image blocks the agent can view. Pass `save_path` (a file, or an existing directory) to write bytes to disk and get back a path instead.
+- **Finding mail.** `list_messages` defaults to the inbox; pass `folder_id` for another folder, `unread_only=true`, or a raw OData `filter` for predicates KQL cannot express. `search_messages` passes your query to Graph's `$search` as KQL.
 
-Every tool that returns objects accepts `include_raw=true` to also include the full Graph payload.
-
-List/search tools support pagination via `limit` (1-100, default 25) and `page_token`.
-
-## Install
-
-The package is `msgraph-mcp-server`; it installs two commands, `msgraph-mcp` (the server) and `msgraph-mcp-login` (one-time sign-in).
-
-```bash
-uv tool install msgraph-mcp-server   # or: pip install msgraph-mcp-server
-```
-
-You need Python ≥ 3.11 and an Entra (Azure AD) app registration (see [Entra setup](#entra-setup)).
-
-## Setup
-
-**1. Set your Entra app credentials.**
-
-```bash
-export MSGRAPH_MCP_CLIENT_ID=<your app's client ID>
-export MSGRAPH_MCP_TENANT_ID=<your tenant ID>
-```
-
-**2. Sign in once** (device code flow — visit the URL it prints, enter the code):
-
-```bash
-msgraph-mcp-login
-```
-
-A token cache is written to `~/.msgraph-mcp/token_cache.bin` (mode `0600`).
-
-**3. Wire the server into your MCP host.**
-
-Claude Code:
-
-```bash
-claude mcp add msgraph \
-  --env MSGRAPH_MCP_CLIENT_ID=$MSGRAPH_MCP_CLIENT_ID \
-  --env MSGRAPH_MCP_TENANT_ID=$MSGRAPH_MCP_TENANT_ID \
-  -- uvx msgraph-mcp-server
-```
-
-Any other host — launch it over stdio:
-
-```json
-{
-  "mcpServers": {
-    "msgraph": {
-      "command": "uvx",
-      "args": ["msgraph-mcp-server"],
-      "env": {
-        "MSGRAPH_MCP_CLIENT_ID": "<your app's client ID>",
-        "MSGRAPH_MCP_TENANT_ID": "<your tenant ID>"
-      }
-    }
-  }
-}
-```
-
-`uvx` runs the published package without installing it; if you used `uv tool install` or `pip install` above, use `msgraph-mcp` as the command instead.
-
-## Entra setup
-
-The app registration (e.g. "MSGraph MCP") requires:
-
-- **Account type:** single tenant
-- **Redirect URI (public client):** `https://login.microsoftonline.com/common/oauth2/nativeclient`
-- **Delegated permissions** (Microsoft Graph):
-  - `Mail.ReadWrite`
-  - `Mail.ReadWrite.Shared`
-  - `Mail.Send`
-  - `MailboxSettings.ReadWrite`
-  - `Calendars.ReadWrite`
-  - `Calendars.ReadWrite.Shared`
-  - `User.Read`
-  - `Chat.Read` (Teams)
-  - `Team.ReadBasic.All` (Teams)
-  - `Channel.ReadBasic.All` (Teams)
-  - `ChannelMessage.Read.All` (Teams)
-- Admin consent: required for `ChannelMessage.Read.All` (always), plus the `*.Shared` permissions if your tenant requires it.
-
-> If you signed in before any of these scopes were added to the app (for example `MailboxSettings.ReadWrite`, or the Teams scopes), re-run `msgraph-mcp-login` so the cached token picks up the new scopes. Without them, calls needing the missing scope fail with a consent error.
-
-The CLI uses public-client device code flow — **no client secret** is needed or stored.
-
-## Environment variables
-
-| Var                            | Required | Default                          | Purpose                             |
-| ------------------------------ | -------- | -------------------------------- | ----------------------------------- |
-| `MSGRAPH_MCP_CLIENT_ID`        | yes      | —                                | Entra (Azure AD) app client ID      |
-| `MSGRAPH_MCP_TENANT_ID`        | yes      | —                                | Tenant ID (single-tenant authority) |
-| `MSGRAPH_MCP_TOKEN_CACHE_PATH` | no       | `~/.msgraph-mcp/token_cache.bin` | Override token cache file location  |
-
-Process env wins; a `.env` file in the working directory is loaded as a dev fallback. The legacy `OUTLOOK_MCP_*` name for each variable is still honored as a fallback (the `MSGRAPH_MCP_*` name wins when both are set).
+Outgoing attachments are capped at 3 MB total per message; chunked upload is not supported. SharePoint-backed Teams file attachments cannot be downloaded, only inline hosted content.
 
 ## Security
 
-- The token cache contains your **refresh token**, which can mint access tokens for your mail, calendar, and Teams data. Treat it like a credential.
-- Default location: `~/.msgraph-mcp/token_cache.bin`, mode `0600`, parent dir mode `0700`.
-- To **revoke** access: sign in to https://account.microsoft.com or your org's identity portal, revoke the app, then `rm ~/.msgraph-mcp/token_cache.bin`.
-- To **switch accounts**: `rm ~/.msgraph-mcp/token_cache.bin` and re-run `msgraph-mcp-login`.
+The token cache holds your **refresh token**, which can mint access tokens for your mail, calendar, and Teams data. Treat the file as a credential. It lives at `~/.msgraph-mcp/token_cache.bin` with mode `0600` inside a `0700` directory.
 
-## Recipes
+To revoke access, or to switch accounts, delete the cache and sign in again:
 
-### Route a sender into a new folder
-
-```
-# 1. Make a folder for the notifications.
-create_folder(display_name="Notifications")
-# -> {"id": "AAMkFolderId", "display_name": "Notifications", ...}
-
-# 2. Create an inbox rule that moves matching senders into it.
-create_rule(
-    display_name="Notifications",
-    sender_contains=["example.com"],
-    move_to_folder="AAMkFolderId",
-    stop_processing_rules=True,
-)
+```bash
+rm -f ~/.msgraph-mcp/token_cache.bin ~/.outlook-mcp/token_cache.bin
 ```
 
-Conditions inside one rule are AND-ed by Outlook. Pass a list to a single condition (e.g. `sender_contains=["example.com", "monitor.io"]`) for OR within that condition. Rules only run against the inbox — Graph's `messageRules` endpoint is hardcoded there and does not support per-folder rules.
-
-`create_rule` requires at least one condition and one action. `update_rule` patches a rule in place but **replaces** the `conditions` or `actions` block whenever you pass any condition/action arg — call `get_rule` first if you need to preserve existing values.
-
-## Microsoft Teams (read-only)
-
-Read Teams message history as the signed-in user:
-
-- `list_chats`, `list_chat_messages`: your 1:1 and group chats.
-- `list_joined_teams`, `list_channels`, `list_channel_messages`, `list_message_replies`: team channels and their threads.
-- `download_hosted_content`: download an inline image referenced by a message (`hosted_content_refs`). Images come back as a native MCP image block the agent can view directly; pass `save_path` (file or existing directory) to write the bytes to disk and get back a path instead.
-
-### Permissions and consent
-
-These delegated scopes are required (already listed in `SCOPES`):
-
-- `Chat.Read`, `Team.ReadBasic.All`, `Channel.ReadBasic.All`: user-consentable.
-- `ChannelMessage.Read.All`: requires tenant administrator consent.
-
-Setup:
-
-1. Add the four delegated permissions to the app registration.
-2. Grant tenant admin consent for `ChannelMessage.Read.All`.
-3. Because the scope set changed, re-run the device-code login so the cached token carries the new scopes.
-
-### Notes and limits
-
-- Reading is delegated-only: you can read your own chats, not other users' chats.
-- Channel message and reply pages are capped at 50 by Graph.
-- SharePoint/OneDrive-backed file attachments are not downloadable here. In Teams, shared files are attachments whose `contentUrl` points into SharePoint, which is a different Graph surface (needs `Files.Read.All` / `Sites.Read.All` and the driveItem APIs). `download_hosted_content` covers inline hosted content (images), not shared files. This is deferred.
+The second path matters if you ever ran this server under its former name `outlook-mcp`: that cache is still used as a fallback when the current one is absent, so deleting only the first file leaves a working refresh token on disk. To revoke fully, also remove the app at https://account.microsoft.com or in your organization's identity portal.
 
 ## Troubleshooting
 
-| Symptom                                                                                                     | Fix                                                                                                                                                                                                                                                           |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NotAuthenticatedError: Not authenticated. Run \`msgraph-mcp-login\`...`                                    | Run `msgraph-mcp-login`.                                                                                                                                                                                                                                      |
-| `ConfigError: Missing required env var: MSGRAPH_MCP_CLIENT_ID`                                              | Set the var in your shell, your `.env`, or your MCP host's env config.                                                                                                                                                                                        |
-| `Graph API 403: ErrorAccessDenied — ...`                                                                    | Permission mismatch on the Entra app. Verify the delegated permissions list above and re-consent.                                                                                                                                                             |
-| `Graph API 400: BadRequest — Syntax error: character ... is not valid at position N` from `search_messages` | The query is passed to Graph's `$search` as-is. Wrap literal/multi-character tokens in double quotes (e.g. `"weekly report"`), or use KQL fielded forms (e.g. `from:alice subject:"report"`). Bare alphanumeric strings with embedded digits are invalid KQL. |
-| Server boots but tools 404 in the host                                                                      | Confirm the host is launching the server over stdio and that it can find the `uvx` / `msgraph-mcp` binary on its `PATH`.                                                                                                                                      |
+- **`NotAuthenticatedError: Not authenticated`** — run `msgraph-mcp-login`. If it recurs immediately, a requested scope has not been consented yet; see the note under Entra setup.
+- **`ConfigError: Missing required env var`** — set it in your shell, in a `.env` in the working directory, or in your MCP host's env config.
+- **`Graph API 403: ErrorAccessDenied`** — the Entra app is missing a delegated permission, or it needs admin consent. Check the list above, then re-consent and sign in again.
+- **`Graph API 400: BadRequest — Syntax error`** from `search_messages` — the query goes to Graph's `$search` as KQL. Quote literal phrases (`"weekly report"`) or use fielded forms (`from:alice`). For predicates KQL cannot express, use `list_messages` with `filter=`.
+- **The host starts the server but lists no tools** — confirm it launches `msgraph-mcp` (or `uvx`) over stdio and can find that binary on its `PATH`.
 
 ## Development
 
-```bash
-git clone https://github.com/timfurlong/msgraph-mcp
-cd msgraph-mcp
-uv sync
-cp .env.example .env   # fill in MSGRAPH_MCP_CLIENT_ID and MSGRAPH_MCP_TENANT_ID
-
-uv run msgraph-mcp-login   # one-time sign-in
-```
-
-Point an MCP host at the working tree with `claude mcp add msgraph -- uv --directory "$(pwd)" run msgraph-mcp`.
-
-```bash
-# Unit tests
-uv run pytest
-
-# Unit + live integration smoke (requires a valid token cache)
-MSGRAPH_MCP_INTEGRATION=1 uv run pytest
-
-# Type check
-uv run pyright src tests
-
-# Lint
-uv run ruff check .
-
-# Format (CI checks this)
-uv run ruff format .
-```
-
-Releases are tag-driven: pushing a `vX.Y.Z` tag matching the `pyproject.toml` version runs the checks, publishes to PyPI via Trusted Publishing, and updates the MCP registry entry.
+See [CONTRIBUTING.md](https://github.com/timfurlong/msgraph-mcp/blob/main/CONTRIBUTING.md).

@@ -2,6 +2,7 @@
 
 Env vars are read once at import-side via require_env. Values are sourced from
 the process environment with .env as a fallback (process wins via override=False).
+.env is looked for in the working directory first, then relative to this module.
 """
 
 from __future__ import annotations
@@ -9,10 +10,18 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 
 # Load .env once at module import; process env takes precedence.
+#
+# The working-directory search runs first because that is where a user expects
+# their .env to be read from. Bare load_dotenv() resolves relative to this
+# module instead, which lands inside site-packages for an installed copy and
+# never finds it; it stays as a second pass so a source checkout launched from
+# an unrelated directory keeps working. override=False throughout, so the
+# process env wins over both and the first file found wins over the second.
+load_dotenv(find_dotenv(usecwd=True), override=False)
 load_dotenv(override=False)
 
 
