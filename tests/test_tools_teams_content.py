@@ -63,6 +63,7 @@ async def test_download_non_image_returns_base64_dict():
     result = await teams_content.download_hosted_content(
         graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1"
     )
+    assert isinstance(result, dict)
     assert result["content_type"] is None
     assert base64.b64decode(result["content_base64"]) == b"not an image"
 
@@ -87,6 +88,7 @@ async def test_save_path_writes_file_and_returns_path(tmp_path):
         graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1",
         save_path=str(target),
     )
+    assert isinstance(result, dict)
     assert result["path"] == str(target)
     assert result["content_type"] == "image/png"
     assert result["size_bytes"] == len(PNG)
@@ -102,6 +104,7 @@ async def test_save_path_directory_generates_filename(tmp_path):
         graph=graph, chat_id="c1", message_id="m1", hosted_content_id="h1",
         save_path=str(tmp_path),
     )
+    assert isinstance(result, dict)
     saved = pathlib.Path(result["path"])
     assert saved.parent == tmp_path
     assert saved.suffix == ".png"

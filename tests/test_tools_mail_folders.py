@@ -76,6 +76,7 @@ async def test_create_folder_top_level():
     assert result["id"] == "new-id"
     # Verify the right endpoint was hit (top-level)
     assert mb.mail_folders.post.await_count == 1
+    assert mb.mail_folders.post.await_args is not None
     posted_body = mb.mail_folders.post.await_args.args[0]
     assert posted_body.display_name == "Test notifications"
 
@@ -179,6 +180,7 @@ async def test_update_folder_reparent_only():
         graph=graph, folder_id="fid", parent_folder_id="new-parent"
     )
     assert result["id"] == "fid"
+    assert by_id.move.post.await_args is not None
     move_body = by_id.move.post.await_args.args[0]
     assert move_body.destination_id == "new-parent"
     by_id.patch.assert_not_awaited()

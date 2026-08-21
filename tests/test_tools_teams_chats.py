@@ -41,6 +41,7 @@ async def test_list_chats_returns_trimmed_and_expands_members():
     result = await teams_chats.list_chats(graph=graph)
 
     graph.raw.me.chats.get.assert_awaited_once()
+    assert graph.raw.me.chats.get.await_args is not None
     rc = graph.raw.me.chats.get.await_args.kwargs["request_configuration"]
     expand = getattr(rc.query_parameters, "expand", None) or []
     assert "members" in expand

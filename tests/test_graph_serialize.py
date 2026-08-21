@@ -140,6 +140,7 @@ def test_message_rule_predicates_to_dict_minimal():
         additional_data={},
     )
     d = serialize.message_rule_predicates_to_dict(pred)
+    assert d is not None
     assert d["senderContains"] == ["example.com"]
     assert d["subjectContains"] == ["Security Scan"]
     assert d["bodyContains"] is None
@@ -162,6 +163,7 @@ def test_message_rule_actions_to_dict_minimal():
         additional_data={},
     )
     d = serialize.message_rule_actions_to_dict(actions)
+    assert d is not None
     assert d["moveToFolder"] == "AAMkFolderId"
     assert d["markAsRead"] is True
     assert d["stopProcessingRules"] is True

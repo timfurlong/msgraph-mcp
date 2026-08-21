@@ -210,6 +210,7 @@ async def test_download_attachment_returns_base64_content():
 
     result = await mail_read.download_attachment(graph=graph, message_id="m1", attachment_id="a1")
 
+    assert isinstance(result, dict)
     assert result["name"] == "x.pdf"
     assert result["content_base64"] is not None
 
@@ -268,6 +269,7 @@ async def test_download_attachment_save_path_writes_file(tmp_path):
         graph=graph, message_id="m1", attachment_id="a1", save_path=str(target)
     )
 
+    assert isinstance(result, dict)
     assert result["path"] == str(target)
     assert result["name"] == "x.pdf"
     assert "content_base64" not in result
@@ -287,6 +289,7 @@ async def test_download_attachment_save_path_directory_uses_attachment_name(tmp_
         graph=graph, message_id="m1", attachment_id="a1", save_path=str(tmp_path)
     )
 
+    assert isinstance(result, dict)
     assert result["path"] == str(tmp_path / "report.pdf")
     assert (tmp_path / "report.pdf").read_bytes() == b"\x00\x01\x02\x03"
 
@@ -307,4 +310,5 @@ async def test_download_attachment_save_path_decodes_str_content_bytes(tmp_path)
     )
 
     assert (tmp_path / "x.bin").read_bytes() == b"\x00\x01\x02\x03"
+    assert isinstance(result, dict)
     assert result["size_bytes"] == 4

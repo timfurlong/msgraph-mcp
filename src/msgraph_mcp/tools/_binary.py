@@ -10,6 +10,7 @@ legacy base64 dict.
 from __future__ import annotations
 
 import pathlib
+from typing import TypeGuard
 
 from mcp.server.fastmcp.utilities.types import Image
 
@@ -21,7 +22,7 @@ _EXT_BY_CONTENT_TYPE = {
 }
 
 
-def is_image(content_type: str | None) -> bool:
+def is_image(content_type: str | None) -> TypeGuard[str]:
     return bool(content_type) and content_type in _EXT_BY_CONTENT_TYPE
 
 

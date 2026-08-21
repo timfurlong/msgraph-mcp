@@ -299,11 +299,8 @@ def chat_message_to_dict(msg: Any) -> dict:
 
 
 def _member_display_names(members: Any) -> list[str]:
-    return [
-        getattr(m, "display_name", None)
-        for m in (members or [])
-        if getattr(m, "display_name", None)
-    ]
+    names = (getattr(m, "display_name", None) for m in (members or []))
+    return [name for name in names if name]
 
 
 def _chat_message_info_to_dict(preview: Any) -> dict | None:

@@ -6,13 +6,38 @@ on:
       - "v*"
 
 jobs:
+  # Publishing to PyPI is irreversible (a version can be yanked, never reused),
+  # so the full check suite gates the release.
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: Run tests
+        run: uv run --python ${{ matrix.python-version }} --group dev pytest -q
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Type check
+        run: uv run pyright src tests
+
   build:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
 
       - name: Build sdist and wheel
         run: uv build
@@ -25,7 +50,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -37,7 +62,7 @@ jobs:
     permissions:
       id-token: write  # required for PyPI Trusted Publishing (OIDC)
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
@@ -52,7 +77,7 @@ jobs:
       id-token: write  # required for MCP registry OIDC login
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install mcp-publisher
         run: |

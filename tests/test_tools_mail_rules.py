@@ -84,6 +84,7 @@ async def test_create_rule_with_sender_and_move_action():
     )
     assert result["id"] == "new-rule"
 
+    assert inbox.message_rules.post.await_args is not None
     posted = inbox.message_rules.post.await_args.args[0]
     assert posted.display_name == "Test notifications"
     assert posted.is_enabled is True
@@ -104,6 +105,7 @@ async def test_create_rule_with_from_addresses():
         from_addresses=["noreply@example.com", "alerts@example.com"],
         move_to_folder="fid",
     )
+    assert inbox.message_rules.post.await_args is not None
     posted = inbox.message_rules.post.await_args.args[0]
     addrs = posted.conditions.from_addresses
     assert len(addrs) == 2
@@ -332,6 +334,7 @@ async def test_create_rule_defaults_sequence_to_1():
         move_to_folder="fid",
     )
     # Graph rejects sequence=0; we default to 1 so the rule is accepted.
+    assert inbox.message_rules.post.await_args is not None
     posted = inbox.message_rules.post.await_args.args[0]
     assert posted.sequence == 1
 
@@ -349,5 +352,6 @@ async def test_create_rule_respects_explicit_sequence():
         move_to_folder="fid",
         sequence=7,
     )
+    assert inbox.message_rules.post.await_args is not None
     posted = inbox.message_rules.post.await_args.args[0]
     assert posted.sequence == 7
