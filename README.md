@@ -20,11 +20,14 @@ Workflow-oriented tools covering common mail, calendar, and read-only Teams oper
 | Mail — write   | `send_message`, `create_draft`, `reply_message`, `reply_all_message`, `forward_message`, `update_message`, `delete_message`                            |
 | Mail — folders | `list_folders`, `create_folder`, `update_folder`, `delete_folder`, `move_message`                                                                      |
 | Mail — actions | `archive_message`, `mark_read`, `mark_unread`, `flag_message`, `unflag_message`                                                                        |
+| Mail — batch   | `batch_archive_messages`, `batch_move_messages`, `batch_mark_read`, `batch_mark_unread`, `batch_flag_messages`, `batch_unflag_messages`                |
 | Mail — rules   | `list_rules`, `get_rule`, `create_rule`, `update_rule`, `delete_rule`                                                                                  |
 | Calendar       | `list_calendars`, `list_events`, `get_event`, `create_event`, `update_event`, `delete_event`, `cancel_event`, `respond_to_event`, `find_meeting_times` |
 | Teams (read)   | `list_chats`, `list_chat_messages`, `list_joined_teams`, `list_channels`, `list_channel_messages`, `list_message_replies`, `download_hosted_content`      |
 
 Every tool that touches a mailbox or calendar accepts an optional `mailbox` argument (email or user ID) to target shared mailboxes/calendars. Omit it to use the signed-in user's own mailbox.
+
+The `batch_*` tools apply one action to up to 1000 messages through Graph's `$batch` endpoint, and return a per-message result plus a `{total, succeeded, failed}` summary.
 
 Every tool that returns objects accepts `include_raw=true` to also include the full Graph payload.
 
@@ -218,11 +221,3 @@ uv run ruff format .
 ```
 
 Releases are tag-driven: pushing a `vX.Y.Z` tag matching the `pyproject.toml` version runs the checks, publishes to PyPI via Trusted Publishing, and updates the MCP registry entry.
-
-## Future work
-
-Not implemented; reasonable additions:
-
-- **Graph `$batch` requests.** Performance optimization that bundles multiple Graph calls into one HTTP round-trip; would speed up multi-step workflows but adds complexity. Defer until profiling proves the win.
-
-Other known gaps (intentionally out of scope): chunked attachment upload (>3 MB), category master-list management, mail signatures, contacts/To-Do/OneNote, multi-account switching, change-notification subscriptions, force-delete of non-empty folders.
