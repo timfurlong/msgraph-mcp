@@ -1,6 +1,6 @@
 [project]
 name = "msgraph-mcp-server"
-version = "0.3.0"
+version = "0.3.1"
 description = "MCP server for Microsoft Graph: Outlook mail and calendar, plus read-only Microsoft Teams"
 readme = "README.md"
 license = "MIT"
@@ -33,6 +33,8 @@ Issues = "https://github.com/timfurlong/msgraph-mcp/issues"
 
 [project.scripts]
 msgraph-mcp = "msgraph_mcp.server:main"
+# Alias matching the PyPI distribution name, so `uvx msgraph-mcp-server` works.
+msgraph-mcp-server = "msgraph_mcp.server:main"
 msgraph-mcp-login = "msgraph_mcp.auth.cli:main"
 
 [build-system]
