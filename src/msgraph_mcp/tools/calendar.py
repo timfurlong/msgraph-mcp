@@ -187,6 +187,28 @@ def _free_busy(show_as: str) -> FreeBusyStatus:
     return _SHOW_AS[show_as]
 
 
+def _apply_reminder(
+    evt: Event,
+    *,
+    is_reminder_on: bool | None,
+    reminder_minutes_before_start: int | None,
+) -> None:
+    """Set reminder fields on evt. Giving minutes turns the reminder on."""
+    if reminder_minutes_before_start is not None:
+        if reminder_minutes_before_start < 0:
+            raise GraphValidationError(
+                "reminder_minutes_before_start must be zero or greater"
+            )
+        if is_reminder_on is False:
+            raise GraphValidationError(
+                "reminder_minutes_before_start cannot be set when is_reminder_on is False"
+            )
+        evt.reminder_minutes_before_start = reminder_minutes_before_start
+        evt.is_reminder_on = True
+    elif is_reminder_on is not None:
+        evt.is_reminder_on = is_reminder_on
+
+
 def _build_event(
     *,
     subject: str,
@@ -200,6 +222,8 @@ def _build_event(
     is_online_meeting: bool,
     is_all_day: bool,
     show_as: ShowAs | None,
+    is_reminder_on: bool | None,
+    reminder_minutes_before_start: int | None,
 ) -> Event:
     e = Event()
     e.subject = subject
@@ -228,6 +252,11 @@ def _build_event(
     e.is_all_day = is_all_day
     if show_as is not None:
         e.show_as = _free_busy(show_as)
+    _apply_reminder(
+        e,
+        is_reminder_on=is_reminder_on,
+        reminder_minutes_before_start=reminder_minutes_before_start,
+    )
     return e
 
 
@@ -245,6 +274,8 @@ async def create_event(
     is_online_meeting: bool = False,
     is_all_day: bool = False,
     show_as: ShowAs | None = None,
+    is_reminder_on: bool | None = None,
+    reminder_minutes_before_start: int | None = None,
     calendar_id: str | None = None,
     mailbox: str | None = None,
     include_raw: bool = False,
@@ -263,6 +294,10 @@ async def create_event(
         is_all_day: All-day event flag.
         show_as: Free/busy status shown to others: "free", "tentative", "busy",
             "oof", or "workingElsewhere". Omit for Outlook's default ("busy").
+        is_reminder_on: False creates the event with no reminder. Omit for
+            Outlook's default (a reminder 15 minutes before start).
+        reminder_minutes_before_start: Minutes before start to alert (0 or
+            more). Setting this turns the reminder on.
         calendar_id: Optional calendar id; default is the user's primary calendar.
         mailbox: Optional mailbox.
 
@@ -281,6 +316,8 @@ async def create_event(
         is_online_meeting=is_online_meeting,
         is_all_day=is_all_day,
         show_as=show_as,
+        is_reminder_on=is_reminder_on,
+        reminder_minutes_before_start=reminder_minutes_before_start,
     )
     try:
         target = graph.mailbox(mailbox)
@@ -310,6 +347,8 @@ async def update_event(
     is_online_meeting: bool | None = None,
     is_all_day: bool | None = None,
     show_as: ShowAs | None = None,
+    is_reminder_on: bool | None = None,
+    reminder_minutes_before_start: int | None = None,
     mailbox: str | None = None,
     include_raw: bool = False,
 ) -> dict:
@@ -319,6 +358,10 @@ async def update_event(
 
     show_as sets the free/busy status shown to others: "free", "tentative",
     "busy", "oof", or "workingElsewhere".
+
+    is_reminder_on=False removes the reminder. reminder_minutes_before_start
+    sets how many minutes before start to alert (0 or more) and turns the
+    reminder on.
     """
     if (start_datetime or end_datetime) and not time_zone:
         raise GraphValidationError("time_zone is required when updating start or end")
@@ -344,6 +387,11 @@ async def update_event(
         patch.is_all_day = is_all_day
     if show_as is not None:
         patch.show_as = _free_busy(show_as)
+    _apply_reminder(
+        patch,
+        is_reminder_on=is_reminder_on,
+        reminder_minutes_before_start=reminder_minutes_before_start,
+    )
     try:
         updated = await graph.mailbox(mailbox).events.by_event_id(event_id).patch(patch)
     except NotAuthenticatedError:
@@ -578,6 +626,8 @@ def register(mcp, *, graph) -> None:
         is_online_meeting: bool = False,
         is_all_day: bool = False,
         show_as: ShowAs | None = None,
+        is_reminder_on: bool | None = None,
+        reminder_minutes_before_start: int | None = None,
         calendar_id: str | None = None,
         mailbox: str | None = None,
         include_raw: bool = False,
@@ -595,6 +645,8 @@ def register(mcp, *, graph) -> None:
             is_online_meeting=is_online_meeting,
             is_all_day=is_all_day,
             show_as=show_as,
+            is_reminder_on=is_reminder_on,
+            reminder_minutes_before_start=reminder_minutes_before_start,
             calendar_id=calendar_id,
             mailbox=mailbox,
             include_raw=include_raw,
@@ -613,6 +665,8 @@ def register(mcp, *, graph) -> None:
         is_online_meeting: bool | None = None,
         is_all_day: bool | None = None,
         show_as: ShowAs | None = None,
+        is_reminder_on: bool | None = None,
+        reminder_minutes_before_start: int | None = None,
         mailbox: str | None = None,
         include_raw: bool = False,
     ):
@@ -629,6 +683,8 @@ def register(mcp, *, graph) -> None:
             is_online_meeting=is_online_meeting,
             is_all_day=is_all_day,
             show_as=show_as,
+            is_reminder_on=is_reminder_on,
+            reminder_minutes_before_start=reminder_minutes_before_start,
             mailbox=mailbox,
             include_raw=include_raw,
         )
