@@ -1,14 +1,14 @@
-"""FastMCP server entry point.
+"""MCP server entry point.
 
 Boot order:
   1. Validate config (fail fast if env is missing).
   2. Build the GraphClient (lazy token acquisition — no Graph calls yet).
-  3. Build a FastMCP app, register all tools, and run on stdio.
+  3. Build an MCPServer app, register all tools, and run on stdio.
 """
 
 from __future__ import annotations
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from msgraph_mcp import config
 from msgraph_mcp.graph.client import GraphClient
@@ -45,12 +45,12 @@ that returns objects to also get the full Graph payload.
 """.strip()
 
 
-def build_server() -> FastMCP:
+def build_server() -> MCPServer:
     # Fail fast on missing env (raises ConfigError before we hit the event loop)
     config.client_id()
     config.authority()
 
-    mcp = FastMCP(name="msgraph-mcp", instructions=_INSTRUCTIONS)
+    mcp = MCPServer(name="msgraph-mcp", instructions=_INSTRUCTIONS)
     graph = GraphClient()
     register_all(mcp, graph=graph)
     return mcp

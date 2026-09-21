@@ -20,7 +20,7 @@ classifiers = [
     "Topic :: Office/Business :: Scheduling",
 ]
 dependencies = [
-    "mcp>=1.0",
+    "mcp>=2.2,<3",
     "msgraph-sdk>=1.0",
     "msal>=1.31",
     "python-dotenv>=1.0",
