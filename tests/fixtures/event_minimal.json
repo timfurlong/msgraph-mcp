@@ -20,6 +20,8 @@
   "body": {"contentType": "html", "content": "<p>Daily standup</p>"},
   "showAs": "busy",
   "sensitivity": "normal",
+  "isReminderOn": true,
+  "reminderMinutesBeforeStart": 15,
   "recurrence": null,
   "webLink": "https://outlook.office.com/owa/?ItemID=evt"
 }

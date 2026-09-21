@@ -84,6 +84,13 @@ def test_trim_event_minimal():
     assert "body" not in t
 
 
+def test_trim_event_includes_reminder():
+    raw = load("event_minimal.json")
+    t = trimming.trim_event(raw, include_body=False, include_raw=False)
+    assert t["is_reminder_on"] is True
+    assert t["reminder_minutes_before_start"] == 15
+
+
 def test_trim_event_with_body_and_raw():
     raw = load("event_minimal.json")
     t = trimming.trim_event(raw, include_body=True, include_raw=True)

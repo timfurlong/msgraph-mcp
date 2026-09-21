@@ -101,6 +101,8 @@ def trim_event(raw: dict, *, include_body: bool, include_raw: bool) -> dict:
         "body_preview": raw.get("bodyPreview"),
         "show_as": raw.get("showAs"),
         "sensitivity": raw.get("sensitivity"),
+        "is_reminder_on": raw.get("isReminderOn"),
+        "reminder_minutes_before_start": raw.get("reminderMinutesBeforeStart"),
         "recurrence": raw.get("recurrence"),
         "web_link": raw.get("webLink"),
     }

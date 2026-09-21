@@ -228,6 +228,106 @@ def test_register_exposes_show_as_on_create_and_update():
         assert "show_as" in inspect.signature(registered[name]).parameters
 
 
+async def _create_with(**kwargs):
+    graph = MagicMock()
+    mb = MagicMock()
+    mb.events.post = AsyncMock(return_value=_fake_event(id_="new1"))
+    graph.mailbox = MagicMock(return_value=mb)
+    await cal_tools.create_event(
+        graph=graph,
+        subject="Standup",
+        start_datetime="2026-05-19T15:00:00",
+        end_datetime="2026-05-19T15:30:00",
+        **kwargs,
+    )
+    assert mb.events.post.await_args is not None
+    return mb.events.post.await_args.args[0]
+
+
+async def _update_with(**kwargs):
+    graph = MagicMock()
+    mb = MagicMock()
+    evt_builder = MagicMock(patch=AsyncMock(return_value=_fake_event(id_="e1")))
+    mb.events.by_event_id = MagicMock(return_value=evt_builder)
+    graph.mailbox = MagicMock(return_value=mb)
+    await cal_tools.update_event(graph=graph, event_id="e1", **kwargs)
+    return evt_builder.patch.await_args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_create_event_can_turn_reminder_off():
+    posted = await _create_with(is_reminder_on=False)
+    assert posted.is_reminder_on is False
+    assert posted.reminder_minutes_before_start is None
+
+
+@pytest.mark.asyncio
+async def test_create_event_reminder_minutes_turns_reminder_on():
+    posted = await _create_with(reminder_minutes_before_start=60)
+    assert posted.reminder_minutes_before_start == 60
+    assert posted.is_reminder_on is True
+
+
+@pytest.mark.asyncio
+async def test_create_event_leaves_reminder_unset_by_default():
+    posted = await _create_with()
+    assert posted.is_reminder_on is None
+    assert posted.reminder_minutes_before_start is None
+
+
+@pytest.mark.asyncio
+async def test_create_event_rejects_negative_reminder_minutes():
+    with pytest.raises(GraphValidationError):
+        await _create_with(reminder_minutes_before_start=-5)
+
+
+@pytest.mark.asyncio
+async def test_create_event_rejects_minutes_with_reminder_off():
+    with pytest.raises(GraphValidationError):
+        await _create_with(is_reminder_on=False, reminder_minutes_before_start=10)
+
+
+@pytest.mark.asyncio
+async def test_update_event_can_turn_reminder_off():
+    patched = await _update_with(is_reminder_on=False)
+    assert patched.is_reminder_on is False
+    assert patched.reminder_minutes_before_start is None
+
+
+@pytest.mark.asyncio
+async def test_update_event_reminder_minutes_turns_reminder_on():
+    patched = await _update_with(reminder_minutes_before_start=0)
+    assert patched.reminder_minutes_before_start == 0
+    assert patched.is_reminder_on is True
+
+
+@pytest.mark.asyncio
+async def test_update_event_rejects_negative_reminder_minutes():
+    with pytest.raises(GraphValidationError):
+        await _update_with(reminder_minutes_before_start=-1)
+
+
+def test_register_exposes_reminder_params_on_create_and_update():
+    import inspect
+
+    registered: dict = {}
+
+    class FakeMCP:
+        def tool(self, *, name, description=""):  # noqa: ARG002
+            def deco(fn):
+                registered[name] = fn
+                return fn
+
+            return deco
+
+    cal_tools.register(FakeMCP(), graph=MagicMock())
+
+    for name in ("create_event", "update_event"):
+        params = inspect.signature(registered[name]).parameters
+        assert "is_reminder_on" in params
+        assert "reminder_minutes_before_start" in params
+
+
 @pytest.mark.asyncio
 async def test_delete_event_calls_delete():
     graph = MagicMock()

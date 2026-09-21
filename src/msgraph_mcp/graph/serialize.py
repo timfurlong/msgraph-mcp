@@ -188,6 +188,10 @@ def event_to_dict(evt: Any) -> dict:
         "body": _body_to_dict(getattr(evt, "body", None)),
         "showAs": _enum_value(getattr(evt, "show_as", None)),
         "sensitivity": _enum_value(getattr(evt, "sensitivity", None)),
+        "isReminderOn": getattr(evt, "is_reminder_on", None),
+        "reminderMinutesBeforeStart": getattr(
+            evt, "reminder_minutes_before_start", None
+        ),
         "recurrence": getattr(evt, "recurrence", None),
         "webLink": getattr(evt, "web_link", None),
     }

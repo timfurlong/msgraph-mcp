@@ -151,6 +151,18 @@ def test_message_rule_predicates_to_dict_minimal():
     assert d["fromAddresses"] == []
 
 
+def test_event_to_dict_includes_reminder():
+    evt = SimpleNamespace(
+        id="e1",
+        is_reminder_on=True,
+        reminder_minutes_before_start=30,
+        additional_data={},
+    )
+    d = serialize.event_to_dict(evt)
+    assert d["isReminderOn"] is True
+    assert d["reminderMinutesBeforeStart"] == 30
+
+
 def test_message_rule_actions_to_dict_minimal():
     actions = SimpleNamespace(
         assign_categories=None,
