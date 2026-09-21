@@ -14,7 +14,6 @@ from msgraph_mcp import config
 from msgraph_mcp.graph.client import GraphClient
 from msgraph_mcp.tools import register_all
 
-
 _INSTRUCTIONS = """
 Microsoft Outlook (mail + calendar) and Microsoft Teams (read-only) via Microsoft Graph.
 

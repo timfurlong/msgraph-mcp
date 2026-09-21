@@ -47,7 +47,6 @@ from msgraph_mcp.graph.pagination import (
 from msgraph_mcp.graph.serialize import calendar_to_dict, event_to_dict
 from msgraph_mcp.graph.trimming import trim_calendar, trim_event
 
-
 _VALID_RESPONSES = {
     "accept": "accepted",
     "tentativelyAccept": "tentativelyAccepted",
@@ -73,7 +72,7 @@ async def list_calendars(
         collection = await graph.mailbox(mailbox).calendars.get()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     items = [
         trim_calendar(calendar_to_dict(c), include_raw=include_raw)
@@ -139,7 +138,7 @@ async def list_events(
             )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
 
     items = [
@@ -167,7 +166,7 @@ async def get_event(
         evt = await graph.mailbox(mailbox).events.by_event_id(event_id).get()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_event(
         event_to_dict(evt), include_body=include_body, include_raw=include_raw
@@ -326,7 +325,7 @@ async def create_event(
         created = await target.events.post(evt)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_event(
         event_to_dict(created), include_body=False, include_raw=include_raw
@@ -396,7 +395,7 @@ async def update_event(
         updated = await graph.mailbox(mailbox).events.by_event_id(event_id).patch(patch)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_event(
         event_to_dict(updated), include_body=False, include_raw=include_raw
@@ -409,7 +408,7 @@ async def delete_event(*, graph, event_id: str, mailbox: str | None = None) -> d
         await graph.mailbox(mailbox).events.by_event_id(event_id).delete()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"status": "deleted"}
 
@@ -425,7 +424,7 @@ async def cancel_event(
         await graph.mailbox(mailbox).events.by_event_id(event_id).cancel.post(body)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"status": "cancelled"}
 
@@ -470,7 +469,7 @@ async def respond_to_event(
             await evt_builder.decline.post(decline_body)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"status": _VALID_RESPONSES[response]}
 
@@ -536,7 +535,7 @@ async def find_meeting_times(
         result = await graph.mailbox(mailbox).find_meeting_times.post(body)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
 
     suggestions_raw = getattr(result, "meeting_time_suggestions", None) or []

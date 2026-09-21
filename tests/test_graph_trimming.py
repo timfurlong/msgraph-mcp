@@ -1,13 +1,12 @@
-from tests.fixtures import load
-
 from msgraph_mcp.graph import trimming
 from msgraph_mcp.graph.trimming import (
-    trim_chat_message,
-    trim_chat,
-    trim_team,
     trim_channel,
+    trim_chat,
+    trim_chat_message,
     trim_hosted_content_download,
+    trim_team,
 )
+from tests.fixtures import load
 
 
 def test_trim_message_minimal():

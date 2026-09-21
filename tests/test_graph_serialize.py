@@ -2,10 +2,10 @@ from types import SimpleNamespace
 
 from msgraph_mcp.graph import serialize
 from msgraph_mcp.graph.serialize import (
+    channel_to_dict,
     chat_message_to_dict,
     chat_to_dict,
     team_to_dict,
-    channel_to_dict,
 )
 
 

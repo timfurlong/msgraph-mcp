@@ -215,7 +215,7 @@ def test_register_exposes_show_as_on_create_and_update():
     registered: dict = {}
 
     class FakeMCP:
-        def tool(self, *, name, description=""):  # noqa: ARG002
+        def tool(self, *, name, description=""):
             def deco(fn):
                 registered[name] = fn
                 return fn
@@ -313,7 +313,7 @@ def test_register_exposes_reminder_params_on_create_and_update():
     registered: dict = {}
 
     class FakeMCP:
-        def tool(self, *, name, description=""):  # noqa: ARG002
+        def tool(self, *, name, description=""):
             def deco(fn):
                 registered[name] = fn
                 return fn

@@ -31,7 +31,7 @@ async def list_folders(
         collection = await graph.mailbox(mailbox).mail_folders.get()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     items = [
         trim_folder(folder_to_dict(f), include_raw=include_raw)
@@ -70,7 +70,7 @@ async def move_message(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_message(
         message_to_dict(moved), include_body=False, include_raw=include_raw
@@ -113,7 +113,7 @@ async def create_folder(
             created = await graph.mailbox(mailbox).mail_folders.post(body)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_folder(folder_to_dict(created), include_raw=include_raw)
 
@@ -166,7 +166,7 @@ async def update_folder(
             result = await folder_endpoint.move.post(move_body)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_folder(folder_to_dict(result), include_raw=include_raw)
 
@@ -198,7 +198,7 @@ async def delete_folder(
         folder = await folder_endpoint.get()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     total = getattr(folder, "total_item_count", None) or 0
     children = getattr(folder, "child_folder_count", None) or 0
@@ -212,7 +212,7 @@ async def delete_folder(
         await folder_endpoint.delete()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"deleted": True, "id": folder_id}
 

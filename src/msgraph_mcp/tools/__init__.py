@@ -14,8 +14,8 @@ from msgraph_mcp.tools import (
     mail_read,
     mail_rules,
     mail_write,
-    teams_chats,
     teams_channels,
+    teams_chats,
     teams_content,
     util,
 )

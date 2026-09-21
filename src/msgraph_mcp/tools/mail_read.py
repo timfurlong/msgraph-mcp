@@ -109,7 +109,7 @@ async def list_messages(
             )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
 
     items = [
@@ -166,7 +166,7 @@ async def search_messages(
             )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
 
     items = [
@@ -205,7 +205,7 @@ async def get_message(
         msg = await graph.mailbox(mailbox).messages.by_message_id(message_id).get()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_message(
         message_to_dict(msg), include_body=include_body, include_raw=include_raw
@@ -228,7 +228,7 @@ async def list_attachments(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     items = [
         trim_attachment_list(
@@ -270,7 +270,7 @@ async def download_attachment(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
 
     content = getattr(att, "content_bytes", None)

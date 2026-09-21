@@ -51,7 +51,7 @@ async def test_list_rules_returns_trimmed_items():
 
 @pytest.mark.asyncio
 async def test_get_rule_returns_trimmed_rule():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     by_id = MagicMock()
     by_id.get = AsyncMock(
         return_value=_fake_rule(id_="rule-1", name="Test notifications")
@@ -75,7 +75,7 @@ async def test_get_rule_requires_rule_id():
 
 @pytest.mark.asyncio
 async def test_create_rule_with_sender_and_move_action():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     created = _fake_rule(id_="new-rule", name="Test notifications")
     inbox.message_rules.post = AsyncMock(return_value=created)
 
@@ -99,7 +99,7 @@ async def test_create_rule_with_sender_and_move_action():
 
 @pytest.mark.asyncio
 async def test_create_rule_with_from_addresses():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     created = _fake_rule()
     inbox.message_rules.post = AsyncMock(return_value=created)
 
@@ -173,7 +173,7 @@ async def test_create_rule_rejects_invalid_from_address():
 
 @pytest.mark.asyncio
 async def test_update_rule_top_level_fields_only():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     by_id = MagicMock()
     by_id.patch = AsyncMock(return_value=_fake_rule(id_="rule-1", name="Renamed"))
     inbox.message_rules.by_message_rule_id = MagicMock(return_value=by_id)
@@ -198,7 +198,7 @@ async def test_update_rule_top_level_fields_only():
 
 @pytest.mark.asyncio
 async def test_update_rule_replaces_conditions_block():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     by_id = MagicMock()
     by_id.patch = AsyncMock(return_value=_fake_rule(id_="rule-1"))
     inbox.message_rules.by_message_rule_id = MagicMock(return_value=by_id)
@@ -221,7 +221,7 @@ async def test_update_rule_replaces_conditions_block():
 
 @pytest.mark.asyncio
 async def test_update_rule_replaces_actions_block():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     by_id = MagicMock()
     by_id.patch = AsyncMock(return_value=_fake_rule(id_="rule-1"))
     inbox.message_rules.by_message_rule_id = MagicMock(return_value=by_id)
@@ -268,7 +268,7 @@ async def test_update_rule_rejects_whitespace_display_name():
 
 @pytest.mark.asyncio
 async def test_delete_rule_calls_delete_endpoint():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     by_id = MagicMock(delete=AsyncMock(return_value=None))
     inbox.message_rules.by_message_rule_id = MagicMock(return_value=by_id)
 
@@ -325,7 +325,7 @@ def test_build_actions_skips_none_fields():
 
 @pytest.mark.asyncio
 async def test_create_rule_defaults_sequence_to_1():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     created = _fake_rule()
     inbox.message_rules.post = AsyncMock(return_value=created)
 
@@ -343,7 +343,7 @@ async def test_create_rule_defaults_sequence_to_1():
 
 @pytest.mark.asyncio
 async def test_create_rule_respects_explicit_sequence():
-    graph, mb, inbox = _build_graph_with_rules_endpoint()
+    graph, _mb, inbox = _build_graph_with_rules_endpoint()
     created = _fake_rule()
     inbox.message_rules.post = AsyncMock(return_value=created)
 
