@@ -13,6 +13,7 @@ from msgraph.generated.models.body_type import BodyType
 from msgraph.generated.models.date_time_time_zone import DateTimeTimeZone
 from msgraph.generated.models.email_address import EmailAddress
 from msgraph.generated.models.event import Event
+from msgraph.generated.models.free_busy_status import FreeBusyStatus
 from msgraph.generated.models.item_body import ItemBody
 from msgraph.generated.models.location import Location
 from msgraph.generated.models.time_constraint import TimeConstraint
@@ -51,6 +52,16 @@ _VALID_RESPONSES = {
     "accept": "accepted",
     "tentativelyAccept": "tentativelyAccepted",
     "decline": "declined",
+}
+
+ShowAs = Literal["free", "tentative", "busy", "oof", "workingElsewhere"]
+
+_SHOW_AS = {
+    "free": FreeBusyStatus.Free,
+    "tentative": FreeBusyStatus.Tentative,
+    "busy": FreeBusyStatus.Busy,
+    "oof": FreeBusyStatus.Oof,
+    "workingElsewhere": FreeBusyStatus.WorkingElsewhere,
 }
 
 
@@ -170,6 +181,12 @@ def _dttz(dt: str, tz: str) -> DateTimeTimeZone:
     return obj
 
 
+def _free_busy(show_as: str) -> FreeBusyStatus:
+    if show_as not in _SHOW_AS:
+        raise GraphValidationError(f"show_as must be one of {sorted(_SHOW_AS)}")
+    return _SHOW_AS[show_as]
+
+
 def _build_event(
     *,
     subject: str,
@@ -182,6 +199,7 @@ def _build_event(
     attendees: list[str] | None,
     is_online_meeting: bool,
     is_all_day: bool,
+    show_as: ShowAs | None,
 ) -> Event:
     e = Event()
     e.subject = subject
@@ -208,6 +226,8 @@ def _build_event(
         e.attendees = atts
     e.is_online_meeting = is_online_meeting
     e.is_all_day = is_all_day
+    if show_as is not None:
+        e.show_as = _free_busy(show_as)
     return e
 
 
@@ -224,6 +244,7 @@ async def create_event(
     attendees: list[str] | None = None,
     is_online_meeting: bool = False,
     is_all_day: bool = False,
+    show_as: ShowAs | None = None,
     calendar_id: str | None = None,
     mailbox: str | None = None,
     include_raw: bool = False,
@@ -240,6 +261,8 @@ async def create_event(
         attendees: Optional list of attendee email addresses (treated as required).
         is_online_meeting: When True, Outlook adds a Teams meeting link.
         is_all_day: All-day event flag.
+        show_as: Free/busy status shown to others: "free", "tentative", "busy",
+            "oof", or "workingElsewhere". Omit for Outlook's default ("busy").
         calendar_id: Optional calendar id; default is the user's primary calendar.
         mailbox: Optional mailbox.
 
@@ -257,6 +280,7 @@ async def create_event(
         attendees=attendees,
         is_online_meeting=is_online_meeting,
         is_all_day=is_all_day,
+        show_as=show_as,
     )
     try:
         target = graph.mailbox(mailbox)
@@ -285,12 +309,16 @@ async def update_event(
     location: str | None = None,
     is_online_meeting: bool | None = None,
     is_all_day: bool | None = None,
+    show_as: ShowAs | None = None,
     mailbox: str | None = None,
     include_raw: bool = False,
 ) -> dict:
     """Patch fields of an existing event. Pass None to leave a field unchanged.
 
     If you change start_datetime or end_datetime, you must also pass time_zone.
+
+    show_as sets the free/busy status shown to others: "free", "tentative",
+    "busy", "oof", or "workingElsewhere".
     """
     if (start_datetime or end_datetime) and not time_zone:
         raise GraphValidationError("time_zone is required when updating start or end")
@@ -314,6 +342,8 @@ async def update_event(
         patch.is_online_meeting = is_online_meeting
     if is_all_day is not None:
         patch.is_all_day = is_all_day
+    if show_as is not None:
+        patch.show_as = _free_busy(show_as)
     try:
         updated = await graph.mailbox(mailbox).events.by_event_id(event_id).patch(patch)
     except NotAuthenticatedError:
@@ -547,6 +577,7 @@ def register(mcp, *, graph) -> None:
         attendees: list[str] | None = None,
         is_online_meeting: bool = False,
         is_all_day: bool = False,
+        show_as: ShowAs | None = None,
         calendar_id: str | None = None,
         mailbox: str | None = None,
         include_raw: bool = False,
@@ -563,6 +594,7 @@ def register(mcp, *, graph) -> None:
             attendees=attendees,
             is_online_meeting=is_online_meeting,
             is_all_day=is_all_day,
+            show_as=show_as,
             calendar_id=calendar_id,
             mailbox=mailbox,
             include_raw=include_raw,
@@ -580,6 +612,7 @@ def register(mcp, *, graph) -> None:
         location: str | None = None,
         is_online_meeting: bool | None = None,
         is_all_day: bool | None = None,
+        show_as: ShowAs | None = None,
         mailbox: str | None = None,
         include_raw: bool = False,
     ):
@@ -595,6 +628,7 @@ def register(mcp, *, graph) -> None:
             location=location,
             is_online_meeting=is_online_meeting,
             is_all_day=is_all_day,
+            show_as=show_as,
             mailbox=mailbox,
             include_raw=include_raw,
         )

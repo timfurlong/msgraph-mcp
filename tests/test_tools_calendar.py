@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from msgraph.generated.models.free_busy_status import FreeBusyStatus
 
 from msgraph_mcp.graph.errors import GraphValidationError
 from msgraph_mcp.tools import calendar as cal_tools
@@ -132,6 +133,99 @@ async def test_update_event_patches():
 
     result = await cal_tools.update_event(graph=graph, event_id="e1", subject="Updated")
     assert result["id"] == "e1"
+
+
+@pytest.mark.asyncio
+async def test_create_event_sets_show_as():
+    graph = MagicMock()
+    mb = MagicMock()
+    mb.events.post = AsyncMock(return_value=_fake_event(id_="new1"))
+    graph.mailbox = MagicMock(return_value=mb)
+
+    await cal_tools.create_event(
+        graph=graph,
+        subject="Focus time",
+        start_datetime="2026-05-19T15:00:00",
+        end_datetime="2026-05-19T15:30:00",
+        show_as="free",
+    )
+    assert mb.events.post.await_args is not None
+    posted = mb.events.post.await_args.args[0]
+    assert posted.show_as == FreeBusyStatus.Free
+
+
+@pytest.mark.asyncio
+async def test_create_event_leaves_show_as_unset_by_default():
+    graph = MagicMock()
+    mb = MagicMock()
+    mb.events.post = AsyncMock(return_value=_fake_event(id_="new1"))
+    graph.mailbox = MagicMock(return_value=mb)
+
+    await cal_tools.create_event(
+        graph=graph,
+        subject="Standup",
+        start_datetime="2026-05-19T15:00:00",
+        end_datetime="2026-05-19T15:30:00",
+    )
+    assert mb.events.post.await_args is not None
+    posted = mb.events.post.await_args.args[0]
+    assert posted.show_as is None
+
+
+@pytest.mark.asyncio
+async def test_create_event_rejects_bad_show_as():
+    graph = MagicMock()
+    with pytest.raises(GraphValidationError):
+        await cal_tools.create_event(
+            graph=graph,
+            subject="Standup",
+            start_datetime="2026-05-19T15:00:00",
+            end_datetime="2026-05-19T15:30:00",
+            show_as="available",  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_event_patches_show_as():
+    graph = MagicMock()
+    mb = MagicMock()
+    evt_builder = MagicMock(patch=AsyncMock(return_value=_fake_event(id_="e1")))
+    mb.events.by_event_id = MagicMock(return_value=evt_builder)
+    graph.mailbox = MagicMock(return_value=mb)
+
+    await cal_tools.update_event(graph=graph, event_id="e1", show_as="workingElsewhere")
+    patched = evt_builder.patch.await_args.args[0]
+    assert patched.show_as == FreeBusyStatus.WorkingElsewhere
+
+
+@pytest.mark.asyncio
+async def test_update_event_rejects_bad_show_as():
+    graph = MagicMock()
+    with pytest.raises(GraphValidationError):
+        await cal_tools.update_event(
+            graph=graph,
+            event_id="e1",
+            show_as="available",  # type: ignore[arg-type]
+        )
+
+
+def test_register_exposes_show_as_on_create_and_update():
+    import inspect
+
+    registered: dict = {}
+
+    class FakeMCP:
+        def tool(self, *, name, description=""):  # noqa: ARG002
+            def deco(fn):
+                registered[name] = fn
+                return fn
+
+            return deco
+
+    cal_tools.register(FakeMCP(), graph=MagicMock())
+
+    for name in ("create_event", "update_event"):
+        assert "show_as" in inspect.signature(registered[name]).parameters
 
 
 @pytest.mark.asyncio
