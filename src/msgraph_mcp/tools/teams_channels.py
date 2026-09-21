@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from kiota_abstractions.base_request_configuration import RequestConfiguration
-from msgraph.generated.teams.item.channels.item.messages.messages_request_builder import (
-    MessagesRequestBuilder as ChannelMessagesRequestBuilder,
-)
 from msgraph.generated.teams.item.channels.item.messages.item.replies.replies_request_builder import (
     RepliesRequestBuilder,
 )
+from msgraph.generated.teams.item.channels.item.messages.messages_request_builder import (
+    MessagesRequestBuilder as ChannelMessagesRequestBuilder,
+)
+
 from msgraph_mcp.auth.token import NotAuthenticatedError
 from msgraph_mcp.graph.errors import map_kiota_error
 from msgraph_mcp.graph.pagination import (
@@ -73,7 +74,7 @@ async def list_joined_teams(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     items = [
         trim_team(team_to_dict(t), include_raw=include_raw)
@@ -117,7 +118,7 @@ async def list_channels(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     items = [
         trim_channel(channel_to_dict(c), include_raw=include_raw)
@@ -170,7 +171,7 @@ async def list_channel_messages(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     items = [
         trim_chat_message(
@@ -227,7 +228,7 @@ async def list_message_replies(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     items = [
         trim_chat_message(

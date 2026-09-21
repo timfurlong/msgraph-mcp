@@ -114,7 +114,7 @@ async def download_hosted_content(
         data = await builder.get()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
 
     if not isinstance(data, (bytes, bytearray)):

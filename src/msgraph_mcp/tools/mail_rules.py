@@ -35,7 +35,7 @@ async def list_rules(
         collection = await _rules_endpoint(graph, mailbox).get()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     items = [
         trim_message_rule(message_rule_to_dict(r), include_raw=include_raw)
@@ -63,7 +63,7 @@ async def get_rule(
         rule = await _rules_endpoint(graph, mailbox).by_message_rule_id(rule_id).get()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_message_rule(message_rule_to_dict(rule), include_raw=include_raw)
 
@@ -241,7 +241,7 @@ async def create_rule(
         created = await _rules_endpoint(graph, mailbox).post(body)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_message_rule(message_rule_to_dict(created), include_raw=include_raw)
 
@@ -346,7 +346,7 @@ async def update_rule(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_message_rule(message_rule_to_dict(updated), include_raw=include_raw)
 
@@ -367,7 +367,7 @@ async def delete_rule(*, graph, rule_id: str, mailbox: str | None = None) -> dic
         await _rules_endpoint(graph, mailbox).by_message_rule_id(rule_id).delete()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"deleted": True, "id": rule_id}
 

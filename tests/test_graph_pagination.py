@@ -49,6 +49,7 @@ def test_validate_limit_custom_maximum_accepts_boundary():
 
 def test_validate_limit_custom_maximum_rejects_over():
     import pytest
+
     from msgraph_mcp.graph.errors import GraphValidationError
     from msgraph_mcp.graph.pagination import validate_limit
 
@@ -58,6 +59,7 @@ def test_validate_limit_custom_maximum_rejects_over():
 
 def test_validate_limit_default_maximum_still_100():
     import pytest
+
     from msgraph_mcp.graph.errors import GraphValidationError
     from msgraph_mcp.graph.pagination import validate_limit
 

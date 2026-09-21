@@ -9,6 +9,7 @@ create/delete real items in your mailbox and a temporary calendar.
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import time
 
@@ -106,7 +107,7 @@ async def test_send_to_self_search_and_delete(graph):
         if result["items"]:
             found = result["items"][0]
             break
-        time.sleep(2)
+        await asyncio.sleep(2)
     assert found is not None, "Sent message never appeared in search results"
     # Cleanup
     deleted = await mail_write.delete_message(graph=graph, message_id=found["id"])

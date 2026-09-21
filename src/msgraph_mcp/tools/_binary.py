@@ -1,7 +1,7 @@
 """Shared helpers for tools that return downloaded binary content.
 
 Image bytes are returned to the client as a native MCP image block
-(mcp.server.fastmcp.utilities.types.Image) so agents see the image directly
+(mcp.server.mcpserver.Image) so agents see the image directly
 instead of a base64 text payload; save_path writes bytes to disk instead and
 returns only metadata. Non-image content without save_path falls back to the
 legacy base64 dict.
@@ -12,7 +12,7 @@ from __future__ import annotations
 import pathlib
 from typing import TypeGuard
 
-from mcp.server.fastmcp.utilities.types import Image
+from mcp.server.mcpserver import Image
 
 _EXT_BY_CONTENT_TYPE = {
     "image/png": ".png",
@@ -31,7 +31,7 @@ def ext_for(content_type: str | None) -> str:
 
 
 def image_result(meta: dict, data: bytes, content_type: str) -> list:
-    """Metadata dict + native MCP image block (FastMCP renders both)."""
+    """Metadata dict + native MCP image block (MCPServer renders both)."""
     return [meta, Image(data=data, format=content_type.removeprefix("image/"))]
 
 

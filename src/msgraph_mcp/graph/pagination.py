@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 
 from msgraph_mcp.graph.errors import GraphValidationError
 
-
 _ALLOWED_HOSTS = {"graph.microsoft.com"}
 
 

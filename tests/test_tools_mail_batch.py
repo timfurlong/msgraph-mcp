@@ -221,7 +221,7 @@ def test_register_wires_all_six_batch_tools():
     registered_names: list[str] = []
 
     class FakeMCP:
-        def tool(self, *, name, description=""):  # noqa: ARG002
+        def tool(self, *, name, description=""):
             registered_names.append(name)
 
             def deco(fn):

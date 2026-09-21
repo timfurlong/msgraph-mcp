@@ -7,6 +7,12 @@ updates:
     groups:
       python-dependencies:
         patterns: ["*"]
+      # Groups only cover version updates unless told otherwise, so security
+      # fixes used to arrive as one PR per package, each rewriting uv.lock and
+      # conflicting with the rest.
+      python-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: github-actions
     directory: /

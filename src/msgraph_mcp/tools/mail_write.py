@@ -33,7 +33,6 @@ from msgraph_mcp.graph.errors import GraphValidationError, map_kiota_error
 from msgraph_mcp.graph.serialize import message_to_dict
 from msgraph_mcp.graph.trimming import trim_message
 
-
 _MAX_INLINE_ATTACHMENT_BYTES = 3 * 1024 * 1024
 
 
@@ -153,7 +152,7 @@ async def send_message(
         await graph.mailbox(mailbox).send_mail.post(req)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"status": "sent"}
 
@@ -185,7 +184,7 @@ async def create_draft(
         created = await graph.mailbox(mailbox).messages.post(msg)
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_message(
         message_to_dict(created), include_body=False, include_raw=include_raw
@@ -235,7 +234,7 @@ async def reply_message(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"status": "sent"}
 
@@ -256,7 +255,7 @@ async def reply_all_message(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"status": "sent"}
 
@@ -280,7 +279,7 @@ async def forward_message(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"status": "sent"}
 
@@ -343,7 +342,7 @@ async def update_message(
         )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_message(
         message_to_dict(updated), include_body=False, include_raw=include_raw
@@ -356,7 +355,7 @@ async def delete_message(*, graph, message_id: str, mailbox: str | None = None) 
         await graph.mailbox(mailbox).messages.by_message_id(message_id).delete()
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return {"status": "deleted"}
 

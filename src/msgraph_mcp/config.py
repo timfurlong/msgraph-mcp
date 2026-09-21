@@ -12,7 +12,6 @@ from pathlib import Path
 
 from dotenv import find_dotenv, load_dotenv
 
-
 # Load .env once at module import; process env takes precedence.
 #
 # The working-directory search runs first because that is where a user expects

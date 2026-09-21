@@ -200,7 +200,9 @@ class GraphBatchTransport:
         import json
 
         from kiota_abstractions.method import Method  # type: ignore[import-untyped]
-        from kiota_abstractions.request_information import RequestInformation  # type: ignore[import-untyped]
+        from kiota_abstractions.request_information import (
+            RequestInformation,  # type: ignore[import-untyped]
+        )
 
         ri = RequestInformation()
         ri.url = self.GRAPH_BATCH_URL

@@ -3,7 +3,7 @@ import pathlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from mcp.server.fastmcp.utilities.types import Image
+from mcp.server.mcpserver import Image
 
 from msgraph_mcp.graph.errors import GraphValidationError
 from msgraph_mcp.tools import teams_content
@@ -52,7 +52,7 @@ async def test_download_image_from_chat_returns_image_content():
     assert meta["size_bytes"] == len(PNG)
     assert isinstance(image, Image)
     block = image.to_image_content()
-    assert block.mimeType == "image/png"
+    assert block.mime_type == "image/png"
     assert base64.b64decode(block.data) == PNG
 
 

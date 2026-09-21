@@ -15,7 +15,6 @@ from azure.core.credentials import AccessToken, TokenCredential
 
 from msgraph_mcp.auth.token import get_access_token
 
-
 # Short expiry: MSAL's cache handles real refresh. Each get_token call goes
 # through get_access_token() which calls acquire_token_silent (cheap, cached).
 _BUFFER_SECONDS = 300

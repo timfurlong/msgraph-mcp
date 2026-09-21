@@ -285,7 +285,7 @@ async def test_delete_folder_refuses_when_messages_present():
 
     folder = _empty_folder(id_="fid")
     folder.total_item_count = 3
-    graph, mb, by_id = _build_folder_endpoint(folder)
+    graph, _mb, by_id = _build_folder_endpoint(folder)
     with pytest.raises(GraphValidationError, match="non-empty folder"):
         await mail_folders.delete_folder(graph=graph, folder_id="fid")
     by_id.delete.assert_not_awaited()
@@ -297,7 +297,7 @@ async def test_delete_folder_refuses_when_child_folders_present():
 
     folder = _empty_folder(id_="fid")
     folder.child_folder_count = 1
-    graph, mb, by_id = _build_folder_endpoint(folder)
+    graph, _mb, by_id = _build_folder_endpoint(folder)
     with pytest.raises(GraphValidationError, match="non-empty folder"):
         await mail_folders.delete_folder(graph=graph, folder_id="fid")
     by_id.delete.assert_not_awaited()

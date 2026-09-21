@@ -24,7 +24,7 @@ async def whoami(*, graph, include_raw: bool = False) -> dict:
     except NotAuthenticatedError:
         # Surface the login-required hint directly; don't wrap as a Graph error.
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
     return trim_user(user_to_dict(user), include_raw=include_raw)
 

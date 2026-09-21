@@ -237,7 +237,7 @@ async def test_execute_batch_429_waits_and_retries_only_throttled(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_execute_batch_429_persistent_failure_reported(monkeypatch):
-    async def fake_sleep(secs):  # noqa: ARG001
+    async def fake_sleep(secs):
         return None
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)

@@ -77,7 +77,7 @@ async def list_chats(
             )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
 
     items = [
@@ -127,7 +127,7 @@ async def list_chat_messages(
             )
     except NotAuthenticatedError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise map_kiota_error(exc) from exc
 
     items = [

@@ -1,6 +1,6 @@
 [project]
 name = "msgraph-mcp-server"
-version = "0.5.0"
+version = "0.5.1"
 description = "MCP server for Microsoft Graph: Outlook mail and calendar, plus read-only Microsoft Teams"
 readme = "README.md"
 license = "MIT"
@@ -20,8 +20,15 @@ classifiers = [
     "Topic :: Office/Business :: Scheduling",
 ]
 dependencies = [
-    "mcp>=1.0",
+    "mcp>=2.2,<3",
     "msgraph-sdk>=1.0",
+    # Transitive, bounded on purpose. kiota-http 1.13 moved request options
+    # from a request attribute into request.extensions, but msgraph-core (up to
+    # 1.5.1) only runs its middleware when that attribute exists. With 1.13+ the
+    # whole pipeline is skipped, so /me is never rewritten and every call fails
+    # with ErrorInvalidUser 'me-token-to-replace'. Drop this once msgraph-core
+    # reads the options from extensions.
+    "microsoft-kiota-http>=1.11.6,<1.13",
     "msal>=1.31",
     "python-dotenv>=1.0",
 ]

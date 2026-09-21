@@ -254,7 +254,7 @@ def _wire_attachment(graph, att):
 async def test_download_attachment_image_returns_image_content():
     import base64 as b64
 
-    from mcp.server.fastmcp.utilities.types import Image
+    from mcp.server.mcpserver import Image
 
     graph = MagicMock()
     att = SimpleNamespace(
@@ -278,7 +278,7 @@ async def test_download_attachment_image_returns_image_content():
     assert meta["content_type"] == "image/png"
     assert isinstance(image, Image)
     block = image.to_image_content()
-    assert block.mimeType == "image/png"
+    assert block.mime_type == "image/png"
     assert b64.b64decode(block.data) == PNG
 
 

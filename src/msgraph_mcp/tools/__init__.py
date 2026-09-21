@@ -1,6 +1,6 @@
 """Tool registration entry point.
 
-register_all(mcp) wires every tool into the FastMCP app. Each tool module
+register_all(mcp) wires every tool into the MCPServer app. Each tool module
 exposes a register(mcp, *, graph) function so we can keep modules small.
 """
 
@@ -14,8 +14,8 @@ from msgraph_mcp.tools import (
     mail_read,
     mail_rules,
     mail_write,
-    teams_chats,
     teams_channels,
+    teams_chats,
     teams_content,
     util,
 )
