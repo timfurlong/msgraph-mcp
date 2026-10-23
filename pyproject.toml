@@ -28,7 +28,7 @@ dependencies = [
     # whole pipeline is skipped, so /me is never rewritten and every call fails
     # with ErrorInvalidUser 'me-token-to-replace'. Drop this once msgraph-core
     # reads the options from extensions.
-    "microsoft-kiota-http>=1.11.6,<1.13",
+    "microsoft-kiota-http>=1.11.6,<1.15",
     "msal>=1.31",
     "python-dotenv>=1.0",
 ]
