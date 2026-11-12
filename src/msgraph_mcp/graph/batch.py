@@ -203,6 +203,10 @@ class GraphBatchTransport:
         from kiota_abstractions.request_information import (
             RequestInformation,  # type: ignore[import-untyped]
         )
+        from msgraph.generated.models.o_data_errors.o_data_error import ODataError
+
+        from msgraph_mcp.auth.token import NotAuthenticatedError
+        from msgraph_mcp.graph.errors import map_kiota_error
 
         ri = RequestInformation()
         ri.url = self.GRAPH_BATCH_URL
@@ -210,7 +214,14 @@ class GraphBatchTransport:
         ri.headers.try_add("Content-Type", "application/json")
         ri.content = json.dumps(payload).encode("utf-8")
 
-        raw = await self._graph.raw.request_adapter.send_primitive_async(
-            ri, "bytes", {}
-        )
+        # The error map lets kiota parse Graph's error body (code and message)
+        # when the $batch request as a whole fails.
+        try:
+            raw = await self._graph.raw.request_adapter.send_primitive_async(
+                ri, "bytes", {"XXX": ODataError}
+            )
+        except NotAuthenticatedError:
+            raise
+        except Exception as exc:
+            raise map_kiota_error(exc) from exc
         return json.loads(raw)
