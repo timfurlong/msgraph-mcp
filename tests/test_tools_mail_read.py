@@ -1,10 +1,17 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
 
 from msgraph_mcp.graph.errors import GraphValidationError
 from msgraph_mcp.tools import mail_read
+from tests.sdk_graph import graph_error, sdk_graph
+
+# Graph only sorts a filtered message query by receivedDateTime when the
+# filter names receivedDateTime first, so list_messages leads every filter
+# with this always-true clause.
+SORT_CLAUSE = "receivedDateTime ge 1900-01-01T00:00:00Z"
 
 
 def _fake_message(*, id_="m1", subject="Hi"):
@@ -110,7 +117,7 @@ async def test_list_messages_default_passes_no_filter():
 async def test_list_messages_unread_only_sets_isread_filter():
     graph, folder = _list_messages_mock_setup()
     await mail_read.list_messages(graph=graph, unread_only=True)
-    assert _captured_filter(folder) == "isRead eq false"
+    assert _captured_filter(folder) == f"{SORT_CLAUSE} and isRead eq false"
 
 
 @pytest.mark.asyncio
@@ -119,7 +126,10 @@ async def test_list_messages_raw_filter_passes_through():
     await mail_read.list_messages(
         graph=graph, filter="from/emailAddress/address eq 'a@x.com'"
     )
-    assert _captured_filter(folder) == "(from/emailAddress/address eq 'a@x.com')"
+    assert (
+        _captured_filter(folder)
+        == f"{SORT_CLAUSE} and (from/emailAddress/address eq 'a@x.com')"
+    )
 
 
 @pytest.mark.asyncio
@@ -128,9 +138,87 @@ async def test_list_messages_combines_unread_and_filter_with_and():
     await mail_read.list_messages(
         graph=graph, unread_only=True, filter="contains(subject,'report')"
     )
-    assert (
-        _captured_filter(folder) == "isRead eq false and (contains(subject,'report'))"
+    assert _captured_filter(folder) == (
+        f"{SORT_CLAUSE} and isRead eq false and (contains(subject,'report'))"
     )
+
+
+def _graph_with_sort_rule(seen: list[httpx.URL]):
+    """Real SDK over a transport that applies Graph's $filter/$orderby rule.
+
+    Graph answers 400 InefficientFilter when a $filter is combined with an
+    $orderby whose property the filter doesn't name first.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url)
+        filter_expr = request.url.params.get("$filter")
+        orderby = request.url.params.get("$orderby")
+        if filter_expr and orderby:
+            sort_property = orderby.split()[0]
+            if not filter_expr.lstrip("(").startswith(sort_property):
+                return graph_error(
+                    400,
+                    "InefficientFilter",
+                    "The restriction or sort order is too complex for this operation.",
+                )
+        return httpx.Response(200, json={"value": [{"id": "m1", "subject": "Hi"}]})
+
+    return sdk_graph(handler)
+
+
+async def test_list_messages_filtered_request_sorts_newest_first():
+    seen: list[httpx.URL] = []
+    graph = _graph_with_sort_rule(seen)
+
+    result = await mail_read.list_messages(
+        graph=graph,
+        folder_id="sentitems",
+        filter="contains(subject,'Quarterly report')",
+        limit=5,
+    )
+
+    assert [item["id"] for item in result["items"]] == ["m1"]
+    (url,) = seen
+    assert url.path == "/v1.0/me/mailFolders/sentitems/messages"
+    assert url.params["$filter"] == (
+        f"{SORT_CLAUSE} and (contains(subject,'Quarterly report'))"
+    )
+    assert url.params["$orderby"] == "receivedDateTime DESC"
+    assert url.params["$top"] == "5"
+
+
+@pytest.mark.parametrize(
+    ("unread_only", "filter_expr"),
+    [
+        (False, "contains(subject,'report')"),
+        (False, "hasAttachments eq false"),
+        (False, "from/emailAddress/address eq 'a@example.com'"),
+        (False, "receivedDateTime ge 2026-05-01T00:00:00Z"),
+        (True, None),
+        (True, "contains(body/content,'invoice')"),
+    ],
+)
+async def test_list_messages_filters_satisfy_graph_sort_rule(unread_only, filter_expr):
+    seen: list[httpx.URL] = []
+    graph = _graph_with_sort_rule(seen)
+
+    result = await mail_read.list_messages(
+        graph=graph, unread_only=unread_only, filter=filter_expr
+    )
+
+    assert [item["id"] for item in result["items"]] == ["m1"]
+    assert seen[0].params["$orderby"] == "receivedDateTime DESC"
+
+
+async def test_list_messages_unfiltered_request_has_no_filter():
+    seen: list[httpx.URL] = []
+    graph = _graph_with_sort_rule(seen)
+
+    await mail_read.list_messages(graph=graph)
+
+    assert "$filter" not in seen[0].params
+    assert seen[0].params["$orderby"] == "receivedDateTime DESC"
 
 
 @pytest.mark.asyncio

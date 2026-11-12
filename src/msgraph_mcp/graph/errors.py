@@ -3,18 +3,25 @@
 Kiota / msgraph-sdk raises a variety of exception shapes for HTTP errors.
 We normalize them into a single GraphAPIError class that the tool layer
 can catch and turn into a clean MCP tool error.
+
+Both error classes subclass MCPServer's ToolError. MCPServer reports any other
+exception as a bare "Error executing tool <name>" and keeps its text on the
+server, so without that the caller would never see the Graph status, code and
+message.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from mcp.server.mcpserver.exceptions import ToolError
 
-class GraphValidationError(RuntimeError):
+
+class GraphValidationError(ToolError, RuntimeError):
     """Raised when tool params fail validation before the Graph call."""
 
 
-class GraphAPIError(RuntimeError):
+class GraphAPIError(ToolError, RuntimeError):
     """Raised when Graph returns a non-success response."""
 
     def __init__(self, *, status: int, code: str, message: str) -> None:

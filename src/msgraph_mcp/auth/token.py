@@ -6,12 +6,17 @@ get_access_token raises NotAuthenticatedError pointing at the login CLI.
 
 from __future__ import annotations
 
+from mcp.server.mcpserver.exceptions import ToolError
+
 from msgraph_mcp import config
 from msgraph_mcp.auth.msal_app import build_app, persist_cache
 
 
-class NotAuthenticatedError(RuntimeError):
-    """Raised when no valid token is available and silent refresh failed."""
+class NotAuthenticatedError(ToolError, RuntimeError):
+    """Raised when no valid token is available and silent refresh failed.
+
+    A ToolError so MCPServer passes the login hint through to the caller.
+    """
 
 
 _LOGIN_HINT = "Not authenticated. Run `msgraph-mcp-login` in a terminal to sign in."

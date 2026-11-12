@@ -15,8 +15,9 @@ from msgraph_mcp.graph.auth_provider import MsalTokenCredential
 
 
 class GraphClient:
-    def __init__(self) -> None:
-        self._sdk = GraphServiceClient(
+    def __init__(self, sdk: GraphServiceClient | None = None) -> None:
+        # `sdk` lets tests supply a client wired to a mock transport.
+        self._sdk = sdk or GraphServiceClient(
             credentials=MsalTokenCredential(),
             scopes=config.SCOPES,
         )

@@ -42,13 +42,21 @@ def _list_messages_query(*, limit: int, filter_expr: str | None = None):
     ](query_parameters=qp)
 
 
+# Graph refuses a $filter combined with $orderby unless the filter names the
+# sort property first (400 InefficientFilter, "The restriction or sort order is
+# too complex for this operation"). Leading every filter with this always-true
+# clause satisfies that rule, so filtered results keep the server-side
+# newest-first order and stay newest first across pages.
+_SORT_CLAUSE = "receivedDateTime ge 1900-01-01T00:00:00Z"
+
+
 def _build_list_filter(*, unread_only: bool, filter: str | None) -> str | None:
     parts: list[str] = []
     if unread_only:
         parts.append("isRead eq false")
     if filter:
         parts.append(f"({filter})")
-    return " and ".join(parts) if parts else None
+    return " and ".join([_SORT_CLAUSE, *parts]) if parts else None
 
 
 def _search_query(*, limit: int, query: str):
@@ -73,6 +81,12 @@ async def list_messages(
     filter: str | None = None,
 ) -> dict:
     """List messages from a mail folder, newest first.
+
+    Filtered results are newest first too. When `filter` or `unread_only` is
+    given, the server-side $filter starts with
+    `receivedDateTime ge 1900-01-01T00:00:00Z and`, because Graph only sorts a
+    filtered query by receivedDateTime when the filter names it first. That
+    clause matches every message, so it doesn't narrow the results.
 
     Args:
         folder_id: Folder id, or a well-known name (inbox, sentitems, drafts,
