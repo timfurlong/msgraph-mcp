@@ -2,7 +2,7 @@
 
 GraphServiceClient.me builds /users/me-token-to-replace and relies on
 msgraph-core's middleware pipeline to rewrite it to /me. kiota-http 1.13 broke
-that pipeline for msgraph-core <= 1.5.1 (see the bound in pyproject.toml), and
+that pipeline for msgraph-core <= 1.5.1 (see the floor in pyproject.toml), and
 every call failed against live Graph while the mocked unit tests stayed green.
 This runs the real SDK pipeline over a mock transport, so it needs no auth.
 """
