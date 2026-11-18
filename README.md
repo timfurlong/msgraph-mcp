@@ -108,7 +108,7 @@ Behavior shared across tools:
 - **Pagination.** List and search tools take `limit` (1-100, default 25) and `page_token`, except `list_channel_messages` and `list_message_replies`, which Graph caps at 50. `list_folders`, `list_rules`, `list_attachments`, and `list_calendars` return the whole collection and take neither. On `list_joined_teams` and `list_channels`, `limit` is applied after fetching because Graph rejects `$top` there, so it saves tokens rather than round-trips.
 - **Batch actions.** The `batch_*` tools apply one action to up to 1000 messages via Graph's `$batch` endpoint, returning a per-message result plus a `{total, succeeded, failed}` summary.
 - **Downloads.** `download_attachment` and `download_hosted_content` return images as native MCP image blocks the agent can view. Pass `save_path` (a file, or an existing directory) to write bytes to disk and get back a path instead.
-- **Finding mail.** `list_messages` defaults to the inbox; pass `folder_id` for another folder, `unread_only=true`, or a raw OData `filter` for predicates KQL cannot express. `search_messages` passes your query to Graph's `$search` as KQL.
+- **Finding mail.** `list_messages` defaults to the inbox; pass `folder_id` for another folder, `unread_only=true`, or a raw OData `filter` for predicates KQL cannot express. `search_messages` takes plain text or KQL and quotes it for Graph's `$search`, so `budget review`, `"weekly report"` and `from:alice subject:"report"` all work as written.
 
 Outgoing attachments are capped at 3 MB total per message; chunked upload is not supported. SharePoint-backed Teams file attachments cannot be downloaded, only inline hosted content.
 
@@ -129,7 +129,7 @@ The second path matters if you ever ran this server under its former name `outlo
 - **`NotAuthenticatedError: Not authenticated`** — run `msgraph-mcp-login`. If it recurs immediately, a requested scope has not been consented yet; see the note under Entra setup.
 - **`ConfigError: Missing required env var`** — set it in your shell, in a `.env` in the working directory, or in your MCP host's env config.
 - **`Graph API 403: ErrorAccessDenied`** — the Entra app is missing a delegated permission, or it needs admin consent. Check the list above, then re-consent and sign in again.
-- **`Graph API 400: BadRequest — Syntax error`** from `search_messages` — the query goes to Graph's `$search` as KQL. Quote literal phrases (`"weekly report"`) or use fielded forms (`from:alice`). For predicates KQL cannot express, use `list_messages` with `filter=`.
+- **`Graph API 400: BadRequest — Syntax error`** from `search_messages` — the query is KQL, which the tool quotes and escapes for Graph. Double quotes inside it mark exact phrases (`"weekly report"`), a fielded form needs a value after the colon (`from:alice`), and operators (`AND`, `OR`, `NOT`) go in uppercase between terms. For predicates KQL cannot express, use `list_messages` with `filter=`.
 - **The host starts the server but lists no tools** — confirm it launches `msgraph-mcp` (or `uvx`) over stdio and can find that binary on its `PATH`.
 
 ## Development

@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 from msgraph_mcp.graph.errors import GraphValidationError
+from msgraph_mcp.graph.pagination import encode_next_link
 from msgraph_mcp.tools import mail_read
 from tests.sdk_graph import graph_error, sdk_graph
 
@@ -221,28 +222,101 @@ async def test_list_messages_unfiltered_request_has_no_filter():
     assert seen[0].params["$orderby"] == "receivedDateTime DESC"
 
 
-@pytest.mark.asyncio
-async def test_search_messages_calls_root_messages_with_search_param():
-    graph = MagicMock()
-    mb = MagicMock()
-    mb.messages.get = AsyncMock(
-        return_value=_fake_collection([_fake_message(id_="s1")])
+def _search_graph(seen: list[httpx.URL]):
+    """A Graph that records each request URL and answers with one message."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url)
+        return httpx.Response(200, json={"value": [{"id": "s1", "subject": "Hi"}]})
+
+    return sdk_graph(handler)
+
+
+# Graph wants the whole $search value in double quotes, with any `"` or `\`
+# inside it escaped by a backslash. Unquoted, a multi-word value comes back
+# unfiltered (the newest mail in the mailbox) and a value starting with a digit
+# fails with 400 "Syntax error: character '2' is not valid at position 0".
+@pytest.mark.parametrize(
+    ("query", "sent"),
+    [
+        pytest.param("budget review", '"budget review"', id="multi-word"),
+        pytest.param(
+            '"status: done" weekly',
+            '"\\"status: done\\" weekly"',
+            id="phrase-with-inner-quotes",
+        ),
+        pytest.param("2fa", '"2fa"', id="digit-leading"),
+        pytest.param(
+            'from:alice subject:"report"',
+            '"from:alice subject:\\"report\\""',
+            id="kql-fielded",
+        ),
+        pytest.param("invoice", '"invoice"', id="single-token"),
+        pytest.param("C:\\temp", '"C:\\\\temp"', id="backslash"),
+    ],
+)
+async def test_search_messages_sends_quoted_search(query, sent):
+    seen: list[httpx.URL] = []
+    graph = _search_graph(seen)
+
+    result = await mail_read.search_messages(graph=graph, query=query)
+
+    assert [item["id"] for item in result["items"]] == ["s1"]
+    (url,) = seen
+    assert url.path == "/v1.0/me/messages"
+    assert dict(url.params) == {"$search": sent, "$top": "25"}
+
+
+@pytest.mark.parametrize(
+    ("query", "message"),
+    [
+        pytest.param("", "`query` is required", id="empty"),
+        pytest.param("   ", "`query` is required", id="blank"),
+        # Graph answers an unbalanced quote with the newest unfiltered mail,
+        # which looks like a successful search.
+        pytest.param('"weekly report', "unbalanced", id="unbalanced-quote"),
+    ],
+)
+async def test_search_messages_rejects_bad_query_before_calling_graph(query, message):
+    seen: list[httpx.URL] = []
+    graph = _search_graph(seen)
+
+    with pytest.raises(GraphValidationError, match=message):
+        await mail_read.search_messages(graph=graph, query=query)
+
+    assert seen == []
+
+
+async def test_search_messages_next_page_follows_the_token_as_is():
+    seen: list[httpx.URL] = []
+    graph = _search_graph(seen)
+    next_link = (
+        "https://graph.microsoft.com/v1.0/me/messages"
+        "?%24search=%22budget%20review%22&%24top=25&%24skip=25"
     )
-    graph.mailbox = MagicMock(return_value=mb)
+    token = encode_next_link(next_link)
+    assert token is not None
 
-    result = await mail_read.search_messages(graph=graph, query="from:alice")
+    # The query is ignored on continuation pages, so it isn't validated again.
+    await mail_read.search_messages(graph=graph, query="", page_token=token)
 
-    mb.messages.get.assert_awaited_once()
-    # Verify $search was set on the request configuration
-    await_args = mb.messages.get.await_args
-    assert await_args is not None
-    rc = await_args.kwargs.get("request_configuration")
-    assert rc is not None
-    # Search value should appear in the query parameters
-    qp = getattr(rc, "query_parameters", None)
-    assert qp is not None
-    assert getattr(qp, "search", None) == "from:alice"
-    assert result["items"][0]["id"] == "s1"
+    (url,) = seen
+    assert url.params["$search"] == '"budget review"'
+    assert url.params["$skip"] == "25"
+
+
+async def test_search_messages_url_encodes_the_quoted_value():
+    seen: list[httpx.URL] = []
+    graph = _search_graph(seen)
+
+    await mail_read.search_messages(
+        graph=graph, query="budget review", mailbox="alice@example.com", limit=5
+    )
+
+    (url,) = seen
+    assert url.raw_path == (
+        b"/v1.0/users/alice%40example.com/messages?$search=%22budget%20review%22&$top=5"
+    )
 
 
 @pytest.mark.asyncio
