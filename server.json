@@ -7,12 +7,12 @@
     "url": "https://github.com/timfurlong/msgraph-mcp",
     "source": "github"
   },
-  "version": "0.5.2",
+  "version": "0.5.3",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "msgraph-mcp-server",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

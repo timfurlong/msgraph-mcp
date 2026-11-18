@@ -13,7 +13,7 @@ from msgraph.generated.users.item.messages.messages_request_builder import (
 )
 
 from msgraph_mcp.auth.token import NotAuthenticatedError
-from msgraph_mcp.graph.errors import map_kiota_error
+from msgraph_mcp.graph.errors import GraphValidationError, map_kiota_error
 from msgraph_mcp.graph.pagination import (
     decode_page_token,
     encode_next_link,
@@ -59,10 +59,30 @@ def _build_list_filter(*, unread_only: bool, filter: str | None) -> str | None:
     return " and ".join([_SORT_CLAUSE, *parts]) if parts else None
 
 
+def _quote_search(query: str) -> str:
+    """Wrap a KQL query the way Graph's $search on messages requires.
+
+    Graph wants the whole value in double quotes (`$search="budget review"`),
+    with any `"` or `\\` inside it escaped by a backslash. Sent bare, a
+    multi-word value comes back unfiltered and a value starting with a digit
+    fails with a 400 syntax error.
+    """
+    if not query.strip():
+        raise GraphValidationError("`query` is required")
+    # Graph answers an unbalanced quote with unfiltered results rather than
+    # an error, so catch it here.
+    if query.count('"') % 2:
+        raise GraphValidationError(
+            '`query` has an unbalanced double quote; close the phrase or drop the "'
+        )
+    escaped = query.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
 def _search_query(*, limit: int, query: str):
     qp = MessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters(
         top=limit,
-        search=query,
+        search=_quote_search(query),
     )
     return RequestConfiguration[
         MessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters
@@ -149,9 +169,17 @@ async def search_messages(
 ) -> dict:
     """Search messages across all folders using Graph $search.
 
-    The query is passed to Graph as-is — supply quoting yourself if you need
-    a literal phrase (e.g. '"weekly report"') or KQL fielded predicates
-    (e.g. 'from:alice subject:"report"').
+    Write the query as plain text or KQL. The tool adds the outer quotes and
+    escaping that Graph's $search needs, so double quotes you write mark
+    exact phrases. Examples:
+    `budget review` (messages containing both words),
+    `"weekly report"` (that exact phrase),
+    `"Q3 plan" review` (a phrase plus a word),
+    `from:alice subject:"report"` (KQL fielded predicates),
+    `from:alice OR from:bob` (operators in uppercase).
+    An empty query or one with an unbalanced `"` is rejected before the call,
+    since Graph would answer the latter with unfiltered mail.
+    Graph sorts results by sent date, newest first.
 
     Graph does not allow combining $search with $filter or $orderby, and KQL
     has no `isread`/`unread`/`flag`/`in` predicates. To filter by isRead /
@@ -160,24 +188,26 @@ async def search_messages(
     instead — that path supports the full $filter grammar.
 
     Args:
-        query: Graph $search expression. Plain tokens match across common
-            mail fields; quoted phrases match literally; KQL `field:value`
-            forms target specific fields.
+        query: Plain text or KQL. Words match the from, subject and body
+            fields; double-quoted phrases match literally; KQL `field:value`
+            forms (such as from, to, cc, subject, body, attachment,
+            participants, received, hasAttachments) target one field.
         mailbox: Optional mailbox.
         limit: 1-100.
         page_token: Continuation token.
         include_raw: Include raw payloads.
     """
     limit = validate_limit(limit)
+    # A continuation URL already carries the search, so only a first page
+    # needs (and validates) the query.
+    config = None if page_token is not None else _search_query(limit=limit, query=query)
     builder = graph.mailbox(mailbox).messages
     try:
         if page_token is not None:
             url = decode_page_token(page_token)
             collection = await builder.with_url(url).get()
         else:
-            collection = await builder.get(
-                request_configuration=_search_query(limit=limit, query=query)
-            )
+            collection = await builder.get(request_configuration=config)
     except NotAuthenticatedError:
         raise
     except Exception as exc:
