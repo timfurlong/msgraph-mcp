@@ -1,11 +1,14 @@
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
 from msgraph.generated.models.free_busy_status import FreeBusyStatus
 
 from msgraph_mcp.graph.errors import GraphValidationError
 from msgraph_mcp.tools import calendar as cal_tools
+from tests.sdk_graph import sdk_graph
 
 
 def _fake_calendar(id_="c1", name="Calendar"):
@@ -356,19 +359,57 @@ async def test_cancel_event_calls_cancel_endpoint():
     assert result == {"status": "cancelled"}
 
 
-@pytest.mark.asyncio
-async def test_respond_to_event_accept():
-    graph = MagicMock()
-    mb = MagicMock()
-    mb.events.by_event_id = MagicMock(
-        return_value=MagicMock(accept=MagicMock(post=AsyncMock(return_value=None)))
-    )
-    graph.mailbox = MagicMock(return_value=mb)
+def _respond_graph(seen: list[httpx.Request]):
+    """A Graph that records each request and answers the way Graph does for
+    accept/decline/tentativelyAccept: 202 Accepted with an empty body."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(202)
+
+    return sdk_graph(handler)
+
+
+@pytest.mark.parametrize(
+    ("response", "path", "status"),
+    [
+        ("accept", "accept", "accepted"),
+        ("tentativelyAccept", "tentativelyAccept", "tentativelyAccepted"),
+        ("decline", "decline", "declined"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("comment", "send_response", "body"),
+    [
+        # No comment means no Comment key at all. Setting the model's comment
+        # to None made the backing store write an explicit null, which older
+        # kiota JSON writers (before 1.17) put at the wrong level and then
+        # refused to serialize ("Invalid Json output"), so nothing was sent.
+        (None, True, {"SendResponse": True}),
+        ("See you there", True, {"Comment": "See you there", "SendResponse": True}),
+        (None, False, {"SendResponse": False}),
+    ],
+)
+async def test_respond_to_event_sends_body_and_treats_empty_202_as_success(
+    response, path, status, comment, send_response, body
+):
+    seen: list[httpx.Request] = []
+    graph = _respond_graph(seen)
 
     result = await cal_tools.respond_to_event(
-        graph=graph, event_id="e1", response="accept"
+        graph=graph,
+        event_id="e1",
+        response=response,
+        comment=comment,
+        send_response=send_response,
     )
-    assert result == {"status": "accepted"}
+
+    assert result == {"status": status}
+    (request,) = seen
+    assert request.method == "POST"
+    assert request.url.path == f"/v1.0/me/events/e1/{path}"
+    assert request.headers["content-type"] == "application/json"
+    assert json.loads(request.content) == body
 
 
 @pytest.mark.asyncio

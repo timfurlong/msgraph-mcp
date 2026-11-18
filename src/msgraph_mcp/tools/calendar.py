@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Literal
+from typing import Literal, TypeVar
 
 from kiota_abstractions.base_request_configuration import RequestConfiguration
 from msgraph.generated.models.attendee import Attendee
@@ -429,6 +429,27 @@ async def cancel_event(
     return {"status": "cancelled"}
 
 
+_ResponseBody = TypeVar(
+    "_ResponseBody",
+    AcceptPostRequestBody,
+    TentativelyAcceptPostRequestBody,
+    DeclinePostRequestBody,
+)
+
+
+def _response_body(
+    body: _ResponseBody, *, comment: str | None, send_response: bool
+) -> _ResponseBody:
+    # Leave comment unset when there isn't one. Assigning None makes the
+    # backing store send an explicit null, which kiota's JSON writer before
+    # 1.17 put at the wrong level and refused to serialize ("Invalid Json
+    # output"), failing every response without a comment.
+    if comment is not None:
+        body.comment = comment
+    body.send_response = send_response
+    return body
+
+
 async def respond_to_event(
     *,
     graph,
@@ -451,22 +472,17 @@ async def respond_to_event(
             f"response must be one of {sorted(_VALID_RESPONSES)}"
         )
     evt_builder = graph.mailbox(mailbox).events.by_event_id(event_id)
+    opts = {"comment": comment, "send_response": send_response}
     try:
         if response == "accept":
-            accept_body = AcceptPostRequestBody()
-            accept_body.comment = comment
-            accept_body.send_response = send_response
-            await evt_builder.accept.post(accept_body)
+            body = _response_body(AcceptPostRequestBody(), **opts)
+            await evt_builder.accept.post(body)
         elif response == "tentativelyAccept":
-            tentative_body = TentativelyAcceptPostRequestBody()
-            tentative_body.comment = comment
-            tentative_body.send_response = send_response
-            await evt_builder.tentatively_accept.post(tentative_body)
+            body = _response_body(TentativelyAcceptPostRequestBody(), **opts)
+            await evt_builder.tentatively_accept.post(body)
         else:  # decline
-            decline_body = DeclinePostRequestBody()
-            decline_body.comment = comment
-            decline_body.send_response = send_response
-            await evt_builder.decline.post(decline_body)
+            body = _response_body(DeclinePostRequestBody(), **opts)
+            await evt_builder.decline.post(body)
     except NotAuthenticatedError:
         raise
     except Exception as exc:
