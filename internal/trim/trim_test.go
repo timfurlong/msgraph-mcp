@@ -371,4 +371,3 @@ func TestTeamAndChannel(t *testing.T) {
 func TestHostedContentDownload(t *testing.T) {
 	equalJSON(t, HostedDownload(M{"contentType": "image/png", "size": 4, "contentBytes": "AAECAw=="}, false), `{"content_type":"image/png","size_bytes":4,"content_base64":"AAECAw=="}`)
 }
-
