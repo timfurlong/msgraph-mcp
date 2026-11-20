@@ -82,3 +82,5 @@ func callErr(t *testing.T, cs *mcp.ClientSession, name string, args map[string]a
 }
 
 func jsonOK(v any) graphtest.Response { return graphtest.Response{JSON: v} }
+
+func jsonUnmarshal(s string, v any) error { return json.Unmarshal([]byte(s), v) }
