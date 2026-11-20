@@ -119,6 +119,15 @@ Behavior shared across tools:
 
 Outgoing attachments are capped at 3 MB total per message; chunked upload is not supported. SharePoint-backed Teams file attachments cannot be downloaded, only inline hosted content.
 
+## Memory
+
+MCP hosts such as Claude Code start their own copy of each stdio server per session, so the size of one copy is what adds up. Measured on 2026-11-20 on an Apple Silicon MacBook Pro with macOS `footprint <pid>` (cross-checked with `top`'s MEM column), against a real mailbox:
+
+| Version | Idle, after connecting | After `list_messages` (25 messages) |
+| --- | --- | --- |
+| Go (this version) | 11 MB | 15 MB |
+| Python 0.5.4, launched with `uv run` | 85 MB (74 MB Python + 11 MB `uv`) | 122 MB (111 MB Python + 11 MB `uv`) |
+
 ## Security
 
 The token cache holds your **refresh token**, which can mint access tokens for your mail, calendar, and Teams data. Treat the file as a credential. It lives at `~/.msgraph-mcp/token_cache.bin` with mode `0600` inside a `0700` directory.
