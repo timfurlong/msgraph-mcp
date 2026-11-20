@@ -1,16 +1,13 @@
 version: 2
 updates:
-  - package-ecosystem: uv
+  - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
     groups:
-      python-dependencies:
+      go-dependencies:
         patterns: ["*"]
-      # Groups only cover version updates unless told otherwise, so security
-      # fixes used to arrive as one PR per package, each rewriting uv.lock and
-      # conflicting with the rest.
-      python-security:
+      go-security:
         applies-to: security-updates
         patterns: ["*"]
 

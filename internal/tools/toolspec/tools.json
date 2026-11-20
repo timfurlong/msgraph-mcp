@@ -1,0 +1,2770 @@
+[
+  {
+    "name": "whoami",
+    "description": "Return the signed-in user's profile.\n\nAlso a smoke test that authentication is working.\n\nArgs:\n    include_raw: when True, include the raw Graph payload under \"raw\".\n\nReturns:\n    Trimmed user object: {id, display_name, user_principal_name, mail, job_title}\n",
+    "inputSchema": {
+      "properties": {
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "title": "_whoamiArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_messages",
+    "description": "List messages from a mail folder, newest first.\n\nFiltered results are newest first too. When `filter` or `unread_only` is\ngiven, the server-side $filter starts with\n`receivedDateTime ge 1900-01-01T00:00:00Z and`, because Graph only sorts a\nfiltered query by receivedDateTime when the filter names it first. That\nclause matches every message, so it doesn't narrow the results.\n\nArgs:\n    folder_id: Folder id, or a well-known name (inbox, sentitems, drafts,\n        deleteditems, archive, junkemail). Default: inbox.\n    mailbox: Optional mailbox (email or user ID). Default: signed-in user.\n    limit: 1-100. Default 25.\n    page_token: Pass next_page_token from a previous result to continue.\n    include_raw: Include the raw Graph payload under \"raw\" on each item.\n    unread_only: When True, only return messages where isRead is false.\n        Adds `isRead eq false` to the server-side $filter.\n    filter: Raw OData $filter expression applied server-side. Combined\n        with `unread_only` using `and`. Examples:\n        `from/emailAddress/address eq 'a@x.com'`,\n        `hasAttachments eq true`,\n        `contains(subject,'report')`,\n        `receivedDateTime ge 2026-05-01T00:00:00Z`.\n        Cannot be combined with $search — use `search_messages` for that.\n\nReturns:\n    {\"items\": [trimmed_message, ...], \"next_page_token\": str | None}\n",
+    "inputSchema": {
+      "properties": {
+        "folder_id": {
+          "default": "inbox",
+          "title": "Folder Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        },
+        "unread_only": {
+          "default": false,
+          "title": "Unread Only",
+          "type": "boolean"
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filter"
+        }
+      },
+      "title": "_list_messagesArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "search_messages",
+    "description": "Search messages across all folders using Graph $search.\n\nWrite the query as plain text or KQL. The tool adds the outer quotes and\nescaping that Graph's $search needs, so double quotes you write mark\nexact phrases. Examples:\n`budget review` (messages containing both words),\n`\"weekly report\"` (that exact phrase),\n`\"Q3 plan\" review` (a phrase plus a word),\n`from:alice subject:\"report\"` (KQL fielded predicates),\n`from:alice OR from:bob` (operators in uppercase).\nAn empty query or one with an unbalanced `\"` is rejected before the call,\nsince Graph would answer the latter with unfiltered mail.\nGraph sorts results by sent date, newest first.\n\nGraph does not allow combining $search with $filter or $orderby, and KQL\nhas no `isread`/`unread`/`flag`/`in` predicates. To filter by isRead /\nsender / date / attachments while keyword-matching, use `list_messages`\nwith `filter=\"contains(subject,'…')\"` (or `contains(body/content,'…')`)\ninstead — that path supports the full $filter grammar.\n\nArgs:\n    query: Plain text or KQL. Words match the from, subject and body\n        fields; double-quoted phrases match literally; KQL `field:value`\n        forms (such as from, to, cc, subject, body, attachment,\n        participants, received, hasAttachments) target one field.\n    mailbox: Optional mailbox.\n    limit: 1-100.\n    page_token: Continuation token.\n    include_raw: Include raw payloads.\n",
+    "inputSchema": {
+      "properties": {
+        "query": {
+          "title": "Query",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "_search_messagesArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "get_message",
+    "description": "Fetch a single message by id.\n\nArgs:\n    message_id: Graph message id.\n    mailbox: Optional mailbox.\n    include_body: When True, the full body is returned. Default False\n        (snippet only).\n    include_raw: Include the raw Graph payload under \"raw\".\n\nReturns:\n    Trimmed message object.\n",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_body": {
+          "default": false,
+          "title": "Include Body",
+          "type": "boolean"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_get_messageArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_attachments",
+    "description": "List attachments on a message (metadata only — no content).",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_list_attachmentsArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "download_attachment",
+    "description": "Download a single attachment.\n\nArgs:\n    save_path: Write the bytes to this file path (or into this existing\n        directory, using the attachment's name) instead of returning\n        content. In a directory, the name is reduced to\n        its base name, so it can't point outside that directory. Returns {\"path\", \"name\", \"content_type\", \"size_bytes\"}.\n\nReturns:\n    - Image attachments (PNG/JPEG/GIF/WebP, no save_path): metadata plus\n      the image itself as a native MCP image block, viewable directly.\n    - With save_path: {\"path\", \"name\", \"content_type\", \"size_bytes\"}.\n    - Otherwise: {name, content_type, size_bytes, content_base64}.\n",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "attachment_id": {
+          "title": "Attachment Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "save_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Save Path"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id",
+        "attachment_id"
+      ],
+      "title": "_download_attachmentArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "send_message",
+    "description": "Send a new message immediately.\n\nArgs:\n    to: List of recipient email addresses (required, non-empty).\n    subject: Subject line.\n    body: Message body.\n    body_type: \"text\" or \"html\". Default \"text\".\n    cc: Optional CC list.\n    bcc: Optional BCC list.\n    attachments: Optional list of {name, content_b64, content_type}.\n        Total raw size must be <= 3 MB.\n    save_to_sent_items: Default True.\n    mailbox: Optional mailbox (defaults to signed-in user).\n\nReturns:\n    {\"status\": \"sent\"}\n",
+    "inputSchema": {
+      "properties": {
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "title": "To",
+          "type": "array"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "body": {
+          "title": "Body",
+          "type": "string"
+        },
+        "body_type": {
+          "default": "text",
+          "enum": [
+            "text",
+            "html"
+          ],
+          "title": "Body Type",
+          "type": "string"
+        },
+        "cc": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cc"
+        },
+        "bcc": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bcc"
+        },
+        "attachments": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attachments"
+        },
+        "save_to_sent_items": {
+          "default": true,
+          "title": "Save To Sent Items",
+          "type": "boolean"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "to",
+        "subject",
+        "body"
+      ],
+      "title": "_sendArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_draft",
+    "description": "Create a draft message (not sent). Returns the trimmed draft.",
+    "inputSchema": {
+      "properties": {
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "title": "To",
+          "type": "array"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "body": {
+          "title": "Body",
+          "type": "string"
+        },
+        "body_type": {
+          "default": "text",
+          "enum": [
+            "text",
+            "html"
+          ],
+          "title": "Body Type",
+          "type": "string"
+        },
+        "cc": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cc"
+        },
+        "bcc": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bcc"
+        },
+        "attachments": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attachments"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "to",
+        "subject",
+        "body"
+      ],
+      "title": "_draftArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "reply_message",
+    "description": "Reply to the sender of a message.",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "comment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comment"
+        },
+        "extra_to": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extra To"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_replyArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "reply_all_message",
+    "description": "Reply-all to a message (sender + everyone on the to/cc lines).",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "comment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comment"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_reply_allArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "forward_message",
+    "description": "Forward a message to new recipients.",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "title": "To",
+          "type": "array"
+        },
+        "comment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comment"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_id",
+        "to"
+      ],
+      "title": "_forwardArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "update_message",
+    "description": "Patch a message's read state / flag / importance / categories.\n\nFor moving a message between folders, prefer `move_message` (clearer\nintent). This tool patches in-place; setting parent_folder_id here\nworks but is not the primary path.\n\nReturns the trimmed updated message.\n",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "is_read": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Read"
+        },
+        "flag": {
+          "anyOf": [
+            {
+              "enum": [
+                "notFlagged",
+                "flagged",
+                "complete"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Flag"
+        },
+        "importance": {
+          "anyOf": [
+            {
+              "enum": [
+                "low",
+                "normal",
+                "high"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Importance"
+        },
+        "categories": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Categories"
+        },
+        "parent_folder_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Folder Id"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_updateArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "delete_message",
+    "description": "Soft-delete a message (moves it to Deleted Items).",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_deleteArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_folders",
+    "description": "List the user's mail folders (top level).\n\nReturns:\n    {\"items\": [trimmed_folder, ...], \"next_page_token\": None}\n",
+    "inputSchema": {
+      "properties": {
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "title": "_list_foldersArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "move_message",
+    "description": "Move a message to another folder.\n\nArgs:\n    message_id: Graph message id.\n    destination: Target folder id, OR one of the well-known names:\n        'archive', 'inbox', 'junkemail', 'deleteditems', 'sentitems', 'drafts'.\n    mailbox: Optional mailbox.\n    include_raw: Include the raw Graph payload.\n\nReturns:\n    The trimmed moved message (which lives in the destination folder).\n",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id",
+        "destination"
+      ],
+      "title": "_move_messageArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_folder",
+    "description": "Create a new mail folder (top-level or child).\n\nArgs:\n    display_name: Folder name. Required, non-empty.\n    parent_folder_id: If set, create as a child of this folder; else\n        create at the top level. Accepts a folder id or a well-known\n        name ('inbox', 'archive', etc.).\n    mailbox: Optional mailbox (email or user id) for shared mailboxes.\n    include_raw: Include the raw Graph payload.\n\nReturns:\n    The trimmed new folder.\n",
+    "inputSchema": {
+      "properties": {
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        },
+        "parent_folder_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Folder Id"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "display_name"
+      ],
+      "title": "_create_folderArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "update_folder",
+    "description": "Rename and/or reparent a mail folder.\n\nAt least one of ``display_name`` or ``parent_folder_id`` is required.\nWell-known folders (inbox, drafts, sent items, etc.) cannot be\nrenamed or moved — Graph will reject the request.\n\nArgs:\n    folder_id: Graph folder id. Required.\n    display_name: New folder name. None = unchanged.\n    parent_folder_id: Move under this folder. Accepts a folder id or\n        a well-known name ('inbox', 'archive', etc.). None = unchanged.\n    mailbox: Optional mailbox (email or user id) for shared mailboxes.\n    include_raw: Include the raw Graph payload.\n\nReturns:\n    The trimmed updated folder.\n",
+    "inputSchema": {
+      "properties": {
+        "folder_id": {
+          "title": "Folder Id",
+          "type": "string"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Display Name"
+        },
+        "parent_folder_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Folder Id"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "folder_id"
+      ],
+      "title": "_update_folderArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "delete_folder",
+    "description": "Delete a mail folder. Refuses to delete folders that aren't empty.\n\nReads the folder first and aborts if `totalItemCount > 0` or\n`childFolderCount > 0`. This is a small safety net against accidentally\nnuking a folder with real messages; there is a small race window between\nthe read and the delete, so don't rely on this for adversarial safety.\n\nArgs:\n    folder_id: Graph folder id. Required.\n    mailbox: Optional mailbox (email or user id) for shared mailboxes.\n\nReturns:\n    {\"deleted\": True, \"id\": <folder_id>}\n",
+    "inputSchema": {
+      "properties": {
+        "folder_id": {
+          "title": "Folder Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "folder_id"
+      ],
+      "title": "_delete_folderArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "archive_message",
+    "description": "Archive a message (move it to the Archive folder).",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_archiveArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "mark_read",
+    "description": "Mark a message as read.",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_mark_readArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "mark_unread",
+    "description": "Mark a message as unread.",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_mark_unreadArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "flag_message",
+    "description": "Set the follow-up flag on a message.",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_flagArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "unflag_message",
+    "description": "Clear the follow-up flag on a message.",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "_unflagArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "batch_archive_messages",
+    "description": "Archive a list of messages (bulk move to the Archive well-known folder).",
+    "inputSchema": {
+      "properties": {
+        "message_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Message Ids",
+          "type": "array"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_ids"
+      ],
+      "title": "_archiveArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "batch_move_messages",
+    "description": "Move a list of messages to the given folder.\n\n`destination` accepts a folder id OR one of the well-known names that\n`move_message` already supports ('archive', 'inbox', 'junkemail',\n'deleteditems', 'sentitems', 'drafts'). Graph resolves well-known names\nserver-side, so we pass through without local resolution.\n\nSpec deviation: Spec §6.3 calls for pre-resolving well-known names to\nfolder ids. In practice Graph's /move endpoint accepts well-known names\ndirectly (this is how the existing single-message move_message already\nworks — see src/msgraph_mcp/tools/mail_folders.py). We pass through\nunchanged. If a real-world test surfaces a case where Graph rejects a\nwell-known name in $batch but accepts it in single calls, add resolution\nthen.\n",
+    "inputSchema": {
+      "properties": {
+        "message_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Message Ids",
+          "type": "array"
+        },
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_ids",
+        "destination"
+      ],
+      "title": "_moveArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "batch_mark_read",
+    "description": "Mark a list of messages as read.",
+    "inputSchema": {
+      "properties": {
+        "message_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Message Ids",
+          "type": "array"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_ids"
+      ],
+      "title": "_mark_readArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "batch_mark_unread",
+    "description": "Mark a list of messages as unread.",
+    "inputSchema": {
+      "properties": {
+        "message_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Message Ids",
+          "type": "array"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_ids"
+      ],
+      "title": "_mark_unreadArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "batch_flag_messages",
+    "description": "Flag a list of messages (set followup flag to 'flagged').",
+    "inputSchema": {
+      "properties": {
+        "message_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Message Ids",
+          "type": "array"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_ids"
+      ],
+      "title": "_flagArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "batch_unflag_messages",
+    "description": "Unflag a list of messages (set followup flag to 'notFlagged').",
+    "inputSchema": {
+      "properties": {
+        "message_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Message Ids",
+          "type": "array"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "message_ids"
+      ],
+      "title": "_unflagArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_rules",
+    "description": "List inbox mail rules.\n\nReturns:\n    {\"items\": [trimmed_rule, ...], \"next_page_token\": None}\n",
+    "inputSchema": {
+      "properties": {
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "title": "_list_rulesArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "get_rule",
+    "description": "Get a single inbox mail rule by id.\n\nArgs:\n    rule_id: Graph rule id. Required.\n    mailbox: Optional mailbox (email or user id) for shared mailboxes.\n    include_raw: Include the raw Graph payload.\n\nReturns:\n    Trimmed rule dict.\n",
+    "inputSchema": {
+      "properties": {
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "rule_id"
+      ],
+      "title": "_get_ruleArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_rule",
+    "description": "Create an inbox mail rule.\n\nAt least one condition AND one action are required. Conditions\nwithin a rule are AND-ed by Outlook. Pass multiple values in a list\n(e.g. ``sender_contains=[\"example.com\", \"monitor.io\"]``) for OR\nwithin that condition.\n\nCommon condition args:\n    sender_contains: Substrings to match against the sender display\n        name or address (e.g. [\"example.com\"]).\n    subject_contains: Substrings to match against the subject.\n    body_contains: Substrings to match against the message body.\n    body_or_subject_contains: Match either subject or body.\n    from_addresses: Exact email addresses to match (e.g.\n        [\"noreply@example.com\"]).\n    has_attachments: True/False to require/exclude attachments.\n\nCommon action args:\n    move_to_folder: Destination folder id (use list_folders or\n        create_folder to get one).\n    mark_as_read: Mark matching messages as read.\n    delete: Move matching messages to Deleted Items.\n    stop_processing_rules: If True, no further rules run after this\n        one matches. Recommended for routing-to-folder rules.\n\nOther args:\n    sequence: Optional rule order (lower runs first).\n    is_enabled: Whether the rule is active. Default True.\n    mailbox: Optional mailbox for shared mailboxes.\n    include_raw: Include the raw Graph payload.\n\nReturns:\n    The trimmed new rule.\n",
+    "inputSchema": {
+      "properties": {
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        },
+        "sender_contains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sender Contains"
+        },
+        "subject_contains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject Contains"
+        },
+        "body_contains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body Contains"
+        },
+        "body_or_subject_contains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body Or Subject Contains"
+        },
+        "from_addresses": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "From Addresses"
+        },
+        "has_attachments": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Has Attachments"
+        },
+        "move_to_folder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Move To Folder"
+        },
+        "mark_as_read": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mark As Read"
+        },
+        "delete": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delete"
+        },
+        "stop_processing_rules": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stop Processing Rules"
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sequence"
+        },
+        "is_enabled": {
+          "default": true,
+          "title": "Is Enabled",
+          "type": "boolean"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "display_name"
+      ],
+      "title": "_create_ruleArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "update_rule",
+    "description": "Patch fields of an existing inbox mail rule. Pass None to leave a\nfield unchanged.\n\nReplacement semantics for nested blocks:\n    Graph PATCH on messageRules replaces the entire ``conditions`` or\n    ``actions`` block when you send it. If you pass ANY condition arg\n    (sender_contains, subject_contains, body_contains,\n    body_or_subject_contains, from_addresses, has_attachments) the\n    rule's conditions are rebuilt from ONLY the args you pass — any\n    existing conditions you don't re-specify are dropped. Same for\n    actions (move_to_folder, mark_as_read, delete,\n    stop_processing_rules). If you don't pass any condition or\n    action args, the existing blocks are preserved.\n\n    If you want to add to a block without losing the rest, call\n    ``get_rule`` first and re-supply the existing values.\n\nArgs:\n    rule_id: Graph rule id. Required.\n    display_name: New display name. None = unchanged.\n    is_enabled: Enable/disable the rule. None = unchanged.\n    sequence: New order (lower runs first). None = unchanged.\n    sender_contains / subject_contains / body_contains /\n        body_or_subject_contains / from_addresses / has_attachments:\n        Passing any of these REPLACES the conditions block.\n    move_to_folder / mark_as_read / delete / stop_processing_rules:\n        Passing any of these REPLACES the actions block.\n    mailbox: Optional mailbox for shared mailboxes.\n    include_raw: Include the raw Graph payload.\n\nReturns:\n    The trimmed updated rule.\n",
+    "inputSchema": {
+      "properties": {
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Display Name"
+        },
+        "is_enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Enabled"
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sequence"
+        },
+        "sender_contains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sender Contains"
+        },
+        "subject_contains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject Contains"
+        },
+        "body_contains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body Contains"
+        },
+        "body_or_subject_contains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body Or Subject Contains"
+        },
+        "from_addresses": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "From Addresses"
+        },
+        "has_attachments": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Has Attachments"
+        },
+        "move_to_folder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Move To Folder"
+        },
+        "mark_as_read": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mark As Read"
+        },
+        "delete": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delete"
+        },
+        "stop_processing_rules": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stop Processing Rules"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "rule_id"
+      ],
+      "title": "_update_ruleArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "delete_rule",
+    "description": "Delete an inbox mail rule by id.\n\nArgs:\n    rule_id: Graph rule id. Required.\n    mailbox: Optional mailbox (email or user id) for shared mailboxes.\n\nReturns:\n    {\"deleted\": True, \"id\": <rule_id>}\n",
+    "inputSchema": {
+      "properties": {
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "rule_id"
+      ],
+      "title": "_delete_ruleArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_calendars",
+    "description": "List the user's calendars.",
+    "inputSchema": {
+      "properties": {
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "title": "_list_calendarsArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_events",
+    "description": "List events in a calendar within a date range.\n\nUses Graph's calendarView, which expands recurring events into instances.\n\nArgs:\n    calendar_id: Calendar ID. (Use list_calendars to discover.)\n    start_datetime: ISO 8601 datetime, e.g. \"2026-05-19T00:00:00Z\". Required.\n    end_datetime: ISO 8601 datetime. Required.\n    mailbox: Optional mailbox.\n    limit: 1-100. Default 25.\n    page_token: Continuation token.\n    include_raw: Include raw payloads.\n\nReturns:\n    {\"items\": [trimmed_event, ...], \"next_page_token\": str | None}\n",
+    "inputSchema": {
+      "properties": {
+        "calendar_id": {
+          "title": "Calendar Id",
+          "type": "string"
+        },
+        "start_datetime": {
+          "title": "Start Datetime",
+          "type": "string"
+        },
+        "end_datetime": {
+          "title": "End Datetime",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "calendar_id",
+        "start_datetime",
+        "end_datetime"
+      ],
+      "title": "_list_eventsArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "get_event",
+    "description": "Fetch a single event by id.",
+    "inputSchema": {
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_body": {
+          "default": false,
+          "title": "Include Body",
+          "type": "boolean"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "event_id"
+      ],
+      "title": "_get_eventArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_event",
+    "description": "Create a calendar event.\n\nArgs:\n    subject: Event subject.\n    start_datetime: ISO 8601 datetime (no offset; pair with time_zone).\n    end_datetime: ISO 8601 datetime.\n    time_zone: IANA tz id (e.g. \"America/Los_Angeles\") or \"UTC\". Default \"UTC\".\n    body, body_type: Optional body and \"text\"|\"html\".\n    location: Optional location string.\n    attendees: Optional list of attendee email addresses (treated as required).\n    is_online_meeting: When True, Outlook adds a Teams meeting link.\n    is_all_day: All-day event flag.\n    show_as: Free/busy status shown to others: \"free\", \"tentative\", \"busy\",\n        \"oof\", or \"workingElsewhere\". Omit for Outlook's default (\"busy\").\n    is_reminder_on: False creates the event with no reminder. Omit for\n        Outlook's default (a reminder 15 minutes before start).\n    reminder_minutes_before_start: Minutes before start to alert (0 or\n        more). Setting this turns the reminder on.\n    calendar_id: Optional calendar id; default is the user's primary calendar.\n    mailbox: Optional mailbox.\n\nReturns:\n    Trimmed created event.\n",
+    "inputSchema": {
+      "properties": {
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "start_datetime": {
+          "title": "Start Datetime",
+          "type": "string"
+        },
+        "end_datetime": {
+          "title": "End Datetime",
+          "type": "string"
+        },
+        "time_zone": {
+          "default": "UTC",
+          "title": "Time Zone",
+          "type": "string"
+        },
+        "body": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body"
+        },
+        "body_type": {
+          "default": "text",
+          "enum": [
+            "text",
+            "html"
+          ],
+          "title": "Body Type",
+          "type": "string"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "attendees": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attendees"
+        },
+        "is_online_meeting": {
+          "default": false,
+          "title": "Is Online Meeting",
+          "type": "boolean"
+        },
+        "is_all_day": {
+          "default": false,
+          "title": "Is All Day",
+          "type": "boolean"
+        },
+        "show_as": {
+          "anyOf": [
+            {
+              "enum": [
+                "free",
+                "tentative",
+                "busy",
+                "oof",
+                "workingElsewhere"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Show As"
+        },
+        "is_reminder_on": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Reminder On"
+        },
+        "reminder_minutes_before_start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reminder Minutes Before Start"
+        },
+        "calendar_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calendar Id"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "subject",
+        "start_datetime",
+        "end_datetime"
+      ],
+      "title": "_create_eventArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "update_event",
+    "description": "Patch fields of an existing event. Pass None to leave a field unchanged.\n\nIf you change start_datetime or end_datetime, you must also pass time_zone.\n\nshow_as sets the free/busy status shown to others: \"free\", \"tentative\",\n\"busy\", \"oof\", or \"workingElsewhere\".\n\nis_reminder_on=False removes the reminder. reminder_minutes_before_start\nsets how many minutes before start to alert (0 or more) and turns the\nreminder on.\n",
+    "inputSchema": {
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject"
+        },
+        "start_datetime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Datetime"
+        },
+        "end_datetime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Datetime"
+        },
+        "time_zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Zone"
+        },
+        "body": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body"
+        },
+        "body_type": {
+          "default": "text",
+          "enum": [
+            "text",
+            "html"
+          ],
+          "title": "Body Type",
+          "type": "string"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "is_online_meeting": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Online Meeting"
+        },
+        "is_all_day": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is All Day"
+        },
+        "show_as": {
+          "anyOf": [
+            {
+              "enum": [
+                "free",
+                "tentative",
+                "busy",
+                "oof",
+                "workingElsewhere"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Show As"
+        },
+        "is_reminder_on": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Reminder On"
+        },
+        "reminder_minutes_before_start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reminder Minutes Before Start"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "event_id"
+      ],
+      "title": "_update_eventArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "delete_event",
+    "description": "Delete an event without sending a cancellation to attendees.",
+    "inputSchema": {
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "event_id"
+      ],
+      "title": "_delete_eventArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "cancel_event",
+    "description": "Cancel an event and send a cancellation notice to attendees.",
+    "inputSchema": {
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "comment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comment"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "event_id"
+      ],
+      "title": "_cancel_eventArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "respond_to_event",
+    "description": "Respond to a meeting invite.\n\nArgs:\n    response: One of \"accept\", \"tentativelyAccept\", \"decline\".\n    comment: Optional comment included with the response.\n    send_response: When False, your response status is recorded without\n        emailing the organizer.\n",
+    "inputSchema": {
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "response": {
+          "enum": [
+            "accept",
+            "tentativelyAccept",
+            "decline"
+          ],
+          "title": "Response",
+          "type": "string"
+        },
+        "comment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comment"
+        },
+        "send_response": {
+          "default": true,
+          "title": "Send Response",
+          "type": "boolean"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        }
+      },
+      "required": [
+        "event_id",
+        "response"
+      ],
+      "title": "_respondArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "find_meeting_times",
+    "description": "Suggest meeting times that work for the given attendees.\n\nArgs:\n    attendees: List of attendee email addresses.\n    duration_minutes: Meeting duration in whole minutes (e.g. 30).\n    start_window: ISO 8601 start of the candidate window.\n    end_window: ISO 8601 end of the candidate window.\n    max_candidates: Cap on returned suggestions (default 20).\n\nReturns:\n    {\n      \"suggestions\": [\n        {\"start\": {date_time, time_zone}, \"end\": {...}, \"confidence\": float, \"order_hint\": int},\n        ...\n      ],\n      \"empty_reason\": str | None,\n    }\n",
+    "inputSchema": {
+      "properties": {
+        "attendees": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Attendees",
+          "type": "array"
+        },
+        "duration_minutes": {
+          "title": "Duration Minutes",
+          "type": "integer"
+        },
+        "start_window": {
+          "title": "Start Window",
+          "type": "string"
+        },
+        "end_window": {
+          "title": "End Window",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "max_candidates": {
+          "default": 20,
+          "title": "Max Candidates",
+          "type": "integer"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "attendees",
+        "duration_minutes",
+        "start_window",
+        "end_window"
+      ],
+      "title": "_findArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_chats",
+    "description": "List the signed-in user's Teams chats (1:1, group, meeting).\n\nMembers are expanded so 1:1 chats (which have no topic) are identifiable\nby participant name. Results come back in Graph's default order (most\nrecent message activity first).\n\nEach item carries two timestamps; use the right one:\n- last_message_time: created time of the most recent message (from the\n  expanded lastMessagePreview). This is the true \"last activity\" time.\n- metadata_updated: Graph's lastUpdatedDateTime, which only changes on\n  rename/membership events (e.g. someone joining a meeting call), NOT on\n  new messages. Do not use it to judge recency -- a busy 1:1 can show a\n  months-old metadata_updated.\n\nArgs:\n    limit: 1-100. Default 25.\n    page_token: Pass next_page_token from a previous result to continue.\n    include_raw: Include the raw Graph payload under \"raw\" on each item.\n\nReturns:\n    {\"items\": [trimmed_chat, ...], \"next_page_token\": str | None}\n",
+    "inputSchema": {
+      "properties": {
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "title": "_list_chatsArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_chat_messages",
+    "description": "List messages in a chat, newest first.\n\nArgs:\n    chat_id: Graph chat id (from list_chats).\n    limit: 1-50. Default 25.\n    page_token: Continuation token from a previous result.\n    include_body: When True, include each message's full body and any\n        attachment card payloads (e.g. Adaptive Card JSON for bot posts).\n        Default False (snippet only; card text still feeds the snippet).\n    include_raw: Include the raw Graph payload under \"raw\" on each item.\n\nReturns:\n    {\"items\": [trimmed_chat_message, ...], \"next_page_token\": str | None}\n",
+    "inputSchema": {
+      "properties": {
+        "chat_id": {
+          "title": "Chat Id",
+          "type": "string"
+        },
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_body": {
+          "default": false,
+          "title": "Include Body",
+          "type": "boolean"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "chat_id"
+      ],
+      "title": "_list_chat_messagesArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_joined_teams",
+    "description": "List the teams the signed-in user is a member of.\n\nArgs:\n    limit: 1-100. Default 25. Applied client-side (see below); teams\n        beyond the limit are dropped.\n    page_token: Continuation token from a previous result.\n    include_raw: Include the raw Graph payload under \"raw\" on each item.\n\nReturns:\n    {\"items\": [trimmed_team, ...], \"next_page_token\": str | None}\n",
+    "inputSchema": {
+      "properties": {
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "title": "_list_joined_teamsArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_channels",
+    "description": "List channels in a team.\n\nArgs:\n    team_id: Graph team id (from list_joined_teams).\n    limit: 1-100. Default 25. Applied client-side (see below); channels\n        beyond the limit are dropped.\n    page_token: Continuation token from a previous result.\n    include_raw: Include the raw Graph payload under \"raw\" on each item.\n\nReturns:\n    {\"items\": [trimmed_channel, ...], \"next_page_token\": str | None}\n",
+    "inputSchema": {
+      "properties": {
+        "team_id": {
+          "title": "Team Id",
+          "type": "string"
+        },
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "team_id"
+      ],
+      "title": "_list_channelsArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_channel_messages",
+    "description": "List root messages in a channel, newest first.\n\nReplies are not included here; fetch them with list_message_replies.\n\nArgs:\n    team_id: Graph team id.\n    channel_id: Graph channel id (from list_channels).\n    limit: 1-50 (Graph caps channel message pages at 50). Default 25.\n    page_token: Continuation token from a previous result.\n    include_body: When True, include each message's full body and any\n        attachment card payloads (e.g. Adaptive Card JSON for bot posts).\n        Default False (snippet only; card text still feeds the snippet).\n    include_raw: Include the raw Graph payload under \"raw\" on each item.\n\nReturns:\n    {\"items\": [trimmed_chat_message, ...], \"next_page_token\": str | None}\n",
+    "inputSchema": {
+      "properties": {
+        "team_id": {
+          "title": "Team Id",
+          "type": "string"
+        },
+        "channel_id": {
+          "title": "Channel Id",
+          "type": "string"
+        },
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_body": {
+          "default": false,
+          "title": "Include Body",
+          "type": "boolean"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "team_id",
+        "channel_id"
+      ],
+      "title": "_list_channel_messagesArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_message_replies",
+    "description": "List replies to a channel message (the thread under a root post), newest first.\n\nArgs:\n    team_id: Graph team id.\n    channel_id: Graph channel id.\n    message_id: Graph id of the root channel message (from list_channel_messages).\n    limit: 1-50 (Graph caps reply pages at 50). Default 25.\n    page_token: Continuation token from a previous result.\n    include_body: When True, include each reply's full body and any\n        attachment card payloads. Default False (snippet only).\n    include_raw: Include the raw Graph payload under \"raw\" on each item.\n\nReturns:\n    {\"items\": [trimmed_chat_message, ...], \"next_page_token\": str | None}\n",
+    "inputSchema": {
+      "properties": {
+        "team_id": {
+          "title": "Team Id",
+          "type": "string"
+        },
+        "channel_id": {
+          "title": "Channel Id",
+          "type": "string"
+        },
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "limit": {
+          "default": 25,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Token"
+        },
+        "include_body": {
+          "default": false,
+          "title": "Include Body",
+          "type": "boolean"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "team_id",
+        "channel_id",
+        "message_id"
+      ],
+      "title": "_list_message_repliesArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "download_hosted_content",
+    "description": "Download one inline hosted-content item (usually an image).\n\nSpecify the message location with exactly one of:\n  - chat_id (for a chat message), or\n  - team_id AND channel_id (for a channel message).\n\nGet message_id and hosted_content_id from a message's hosted_content_refs\n(returned by list_chat_messages / list_channel_messages / list_message_replies).\n\nArgs:\n    message_id: Graph id of the message the content is attached to.\n    hosted_content_id: Graph hosted-content id (from hosted_content_refs).\n    chat_id: Chat id, if the message is in a chat.\n    team_id: Team id, if the message is in a channel.\n    channel_id: Channel id, if the message is in a channel.\n    save_path: Write the bytes to this file path (or into this existing\n        directory) instead of returning content. Returns\n        {\"path\", \"content_type\", \"size_bytes\"} with no content payload.\n    include_raw: Include the raw payload under \"raw\" (ignored when the\n        result is an image block or a saved file).\n\nReturns:\n    - Image content (PNG/JPEG/GIF/WebP, no save_path): metadata plus the\n      image itself as a native MCP image block, viewable directly.\n    - With save_path: {\"path\": str, \"content_type\": str | None, \"size_bytes\": int}.\n    - Otherwise: {\"content_type\": str | None, \"size_bytes\": int,\n      \"content_base64\": str | None}. content_type is sniffed from the\n      bytes (Graph does not return it on the $value endpoint); it may be\n      None for unrecognized formats.\n",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "hosted_content_id": {
+          "title": "Hosted Content Id",
+          "type": "string"
+        },
+        "chat_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chat Id"
+        },
+        "team_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Team Id"
+        },
+        "channel_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channel Id"
+        },
+        "save_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Save Path"
+        },
+        "include_raw": {
+          "default": false,
+          "title": "Include Raw",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id",
+        "hosted_content_id"
+      ],
+      "title": "_download_hosted_contentArguments",
+      "type": "object"
+    }
+  }
+]

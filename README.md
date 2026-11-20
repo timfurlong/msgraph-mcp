@@ -2,50 +2,65 @@
 
 <!-- mcp-name: io.github.timfurlong/msgraph-mcp -->
 
-[![PyPI](https://img.shields.io/pypi/v/msgraph-mcp-server)](https://pypi.org/project/msgraph-mcp-server/)
-[![Python versions](https://img.shields.io/pypi/pyversions/msgraph-mcp-server)](https://pypi.org/project/msgraph-mcp-server/)
+[![Release](https://img.shields.io/github/v/release/timfurlong/msgraph-mcp)](https://github.com/timfurlong/msgraph-mcp/releases)
 [![CI](https://github.com/timfurlong/msgraph-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/timfurlong/msgraph-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/timfurlong/msgraph-mcp/blob/main/LICENSE)
 
-A Model Context Protocol (MCP) server for **Microsoft Graph**. It exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents via the Microsoft Graph SDK. It acts as the signed-in user, using delegated permissions and MSAL device code flow, so it can only reach what that user can reach.
+A Model Context Protocol (MCP) server for **Microsoft Graph**. It exposes Microsoft Outlook **mail** and **calendar**, plus read-only Microsoft **Teams** message history, to AI agents. It acts as the signed-in user, using delegated permissions and MSAL device code flow, so it can only reach what that user can reach.
+
+It's a single Go binary with no runtime to install, small enough that running one copy per agent session is cheap (see Memory below).
 
 ## Install
 
-You need Python ≥ 3.11 and an Entra (Azure AD) app registration. The app registration takes about ten minutes and may need an administrator, so do that first: see the Entra setup section below.
+You need an Entra (Azure AD) app registration. It takes about ten minutes and may need an administrator, so do that first: see the Entra setup section below.
+
+Download the archive for your platform from the [latest release](https://github.com/timfurlong/msgraph-mcp/releases/latest), unpack it, and put `msgraph-mcp` somewhere on your `PATH`. Or build it with Go 1.26 or later:
 
 ```bash
-uv tool install msgraph-mcp-server   # or: pip install msgraph-mcp-server
+go install github.com/timfurlong/msgraph-mcp@latest
 ```
 
-The package is `msgraph-mcp-server`. It installs three commands: `msgraph-mcp` and its alias `msgraph-mcp-server`, which both start the stdio server, plus `msgraph-mcp-login` for the one-time sign-in.
+On macOS, a downloaded binary isn't signed, so Gatekeeper may refuse to run it. Clear the quarantine flag once, or use `go install`, which builds locally and isn't affected:
+
+```bash
+xattr -d com.apple.quarantine /path/to/msgraph-mcp
+```
+
+The release also carries `msgraph-mcp.mcpb`, an MCP bundle that Claude Desktop installs directly (it asks for the client and tenant IDs).
+
+### The Python version
+
+Versions up to 0.5.4 were Python, published on PyPI as [`msgraph-mcp-server`](https://pypi.org/project/msgraph-mcp-server/). 0.5.4 is the last Python release and stays installable there; new versions ship only as this Go binary. The tools, their arguments and their output are the same, so switching is a change of command plus the one-line `login` difference below.
 
 ## Setup
 
-**1. Set your Entra app credentials.**
+**1. Set your Entra app credentials.** Put them in `~/.msgraph-mcp/.env`, which every launch reads, so MCP host configs don't need to carry them:
 
 ```bash
-export MSGRAPH_MCP_CLIENT_ID=<your app's client ID>
-export MSGRAPH_MCP_TENANT_ID=<your tenant ID>   # or: common / organizations / consumers
+mkdir -p ~/.msgraph-mcp && chmod 700 ~/.msgraph-mcp
+cat > ~/.msgraph-mcp/.env <<'ENV'
+MSGRAPH_MCP_CLIENT_ID=<your app's client ID>
+MSGRAPH_MCP_TENANT_ID=<your tenant ID>
+ENV
+chmod 600 ~/.msgraph-mcp/.env
 ```
+
+The process environment and a `.env` in the working directory also work, and win over `~/.msgraph-mcp/.env` in that order. `MSGRAPH_MCP_TOKEN_CACHE_PATH` optionally overrides the token cache location.
 
 **2. Sign in once.** This prints a URL and a code; visit the URL and enter the code. No client secret is involved or stored.
 
 ```bash
-msgraph-mcp-login
-# running via uvx instead of installing: uvx --from msgraph-mcp-server msgraph-mcp-login
+msgraph-mcp login
 ```
 
-A token cache is written to `~/.msgraph-mcp/token_cache.bin`.
+A token cache is written to `~/.msgraph-mcp/token_cache.bin`. A cache written by the Python version works as-is, so upgrading doesn't need a new sign-in.
 
 **3. Wire the server into your MCP host.**
 
 Claude Code:
 
 ```bash
-claude mcp add msgraph \
-  --env MSGRAPH_MCP_CLIENT_ID=$MSGRAPH_MCP_CLIENT_ID \
-  --env MSGRAPH_MCP_TENANT_ID=$MSGRAPH_MCP_TENANT_ID \
-  -- msgraph-mcp
+claude mcp add msgraph -s user -- msgraph-mcp
 ```
 
 Any other host, over stdio:
@@ -54,20 +69,12 @@ Any other host, over stdio:
 {
   "mcpServers": {
     "msgraph": {
-      "command": "msgraph-mcp",
-      "args": [],
-      "env": {
-        "MSGRAPH_MCP_CLIENT_ID": "<your app's client ID>",
-        "MSGRAPH_MCP_TENANT_ID": "<your tenant ID>"
-      }
+      "command": "/path/to/msgraph-mcp",
+      "args": []
     }
   }
 }
 ```
-
-To run without installing, use `"command": "uvx"` with `"args": ["msgraph-mcp-server"]`. Note that `uvx` does not put `msgraph-mcp-login` on your `PATH`, so sign in with the `uvx --from` form shown in step 2.
-
-`MSGRAPH_MCP_TOKEN_CACHE_PATH` optionally overrides the cache location. All three variables can also come from a `.env` file in the working directory; the process environment wins over it.
 
 ## Entra setup
 
@@ -85,7 +92,7 @@ The app registration requires:
 
 `ChannelMessage.Read.All` always needs tenant admin consent, and the `*.Shared` permissions may need it depending on your tenant.
 
-> **The scope list is all-or-nothing.** Sign-in requests every scope at once, so without admin consent for `ChannelMessage.Read.All` the login fails outright and mail and calendar are unavailable too. For the same reason, adding scopes later means re-running `msgraph-mcp-login`; until you do, *every* tool fails with `NotAuthenticatedError`, not just the ones needing the new scope.
+> **The scope list is all-or-nothing.** Sign-in requests every scope at once, so without admin consent for `ChannelMessage.Read.All` the login fails outright and mail and calendar are unavailable too. For the same reason, adding scopes later means re-running `msgraph-mcp login`; until you do, *every* tool fails with the not-authenticated error, not just the ones needing the new scope.
 
 ## Tools
 
@@ -103,7 +110,7 @@ The app registration requires:
 
 Behavior shared across tools:
 
-- **Trimmed responses.** Results are reshaped for agents, and message and event bodies are replaced by a short `snippet`. Pass `include_body=true` to `get_message`, `list_chat_messages`, `list_channel_messages`, or `list_message_replies` for the full body, which for Teams is also what surfaces Adaptive Card content. Pass `include_raw=true` to any tool returning a Graph object to get the full payload alongside the trimmed one; the `batch_*` tools return per-message status only and do not accept it.
+- **Trimmed responses.** Results are reshaped for agents, and message and event bodies are replaced by a short `snippet`. Pass `include_body=true` to `get_message`, `list_chat_messages`, `list_channel_messages`, or `list_message_replies` for the full body, which for Teams is also what surfaces Adaptive Card content. Pass `include_raw=true` to any tool returning a Graph object to get Graph's JSON for that object alongside the trimmed one; the `batch_*` tools return per-message status only and do not accept it.
 - **Other mailboxes.** Every mail and calendar tool takes an optional `mailbox` (email or user ID) to target a shared or delegated mailbox. Omit it for your own. Teams tools are read-only, cover only your own chats, and take no `mailbox`.
 - **Pagination.** List and search tools take `limit` (1-100, default 25) and `page_token`, except `list_channel_messages` and `list_message_replies`, which Graph caps at 50. `list_folders`, `list_rules`, `list_attachments`, and `list_calendars` return the whole collection and take neither. On `list_joined_teams` and `list_channels`, `limit` is applied after fetching because Graph rejects `$top` there, so it saves tokens rather than round-trips.
 - **Batch actions.** The `batch_*` tools apply one action to up to 1000 messages via Graph's `$batch` endpoint, returning a per-message result plus a `{total, succeeded, failed}` summary.
@@ -111,6 +118,15 @@ Behavior shared across tools:
 - **Finding mail.** `list_messages` defaults to the inbox; pass `folder_id` for another folder, `unread_only=true`, or a raw OData `filter` for predicates KQL cannot express. `search_messages` takes plain text or KQL and quotes it for Graph's `$search`, so `budget review`, `"weekly report"` and `from:alice subject:"report"` all work as written.
 
 Outgoing attachments are capped at 3 MB total per message; chunked upload is not supported. SharePoint-backed Teams file attachments cannot be downloaded, only inline hosted content.
+
+## Memory
+
+MCP hosts such as Claude Code start their own copy of each stdio server per session, so the size of one copy is what adds up. Measured on 2026-11-20 on an Apple Silicon MacBook Pro with macOS `footprint <pid>` (cross-checked with `top`'s MEM column), against a real mailbox:
+
+| Version | Idle, after connecting | After `list_messages` (25 messages) |
+| --- | --- | --- |
+| Go (this version) | 11 MB | 15 MB |
+| Python 0.5.4, launched with `uv run` | 85 MB (74 MB Python + 11 MB `uv`) | 122 MB (111 MB Python + 11 MB `uv`) |
 
 ## Security
 
@@ -126,11 +142,11 @@ The second path matters if you ever ran this server under its former name `outlo
 
 ## Troubleshooting
 
-- **`NotAuthenticatedError: Not authenticated`** — run `msgraph-mcp-login`. If it recurs immediately, a requested scope has not been consented yet; see the note under Entra setup.
-- **`ConfigError: Missing required env var`** — set it in your shell, in a `.env` in the working directory, or in your MCP host's env config.
-- **`Graph API 403: ErrorAccessDenied`** — the Entra app is missing a delegated permission, or it needs admin consent. Check the list above, then re-consent and sign in again.
+- **`Not authenticated. Run msgraph-mcp login`**: run `msgraph-mcp login`. If it recurs immediately, a requested scope has not been consented yet; see the note under Entra setup.
+- **`Missing required env var`**: set it in `~/.msgraph-mcp/.env`, a `.env` in the working directory, or your MCP host's env config.
+- **`Graph API 403: ErrorAccessDenied`**: the Entra app is missing a delegated permission, or it needs admin consent. Check the list above, then re-consent and sign in again.
 - **`Graph API 400: BadRequest — Syntax error`** from `search_messages` — the query is KQL, which the tool quotes and escapes for Graph. Double quotes inside it mark exact phrases (`"weekly report"`), a fielded form needs a value after the colon (`from:alice`), and operators (`AND`, `OR`, `NOT`) go in uppercase between terms. For predicates KQL cannot express, use `list_messages` with `filter=`.
-- **The host starts the server but lists no tools** — confirm it launches `msgraph-mcp` (or `uvx`) over stdio and can find that binary on its `PATH`.
+- **The host starts the server but lists no tools**: confirm it launches `msgraph-mcp` over stdio and can find that binary (an absolute path avoids `PATH` surprises).
 
 ## Development
 

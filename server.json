@@ -7,26 +7,26 @@
     "url": "https://github.com/timfurlong/msgraph-mcp",
     "source": "github"
   },
-  "version": "0.5.4",
+  "version": "0.6.0",
   "packages": [
     {
-      "registryType": "pypi",
-      "identifier": "msgraph-mcp-server",
-      "version": "0.5.4",
-      "runtimeHint": "uvx",
+      "registryType": "mcpb",
+      "identifier": "https://github.com/timfurlong/msgraph-mcp/releases/download/v0.6.0/msgraph-mcp.mcpb",
+      "version": "0.6.0",
+      "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "MSGRAPH_MCP_CLIENT_ID",
-          "description": "Client ID of your Entra (Azure AD) app registration",
+          "description": "Client ID of your Entra (Azure AD) app registration (or set it in ~/.msgraph-mcp/.env)",
           "isRequired": true,
           "isSecret": false
         },
         {
           "name": "MSGRAPH_MCP_TENANT_ID",
-          "description": "Entra tenant ID (or 'common' / 'organizations' / 'consumers')",
+          "description": "Entra tenant ID, or common / organizations / consumers (or set it in ~/.msgraph-mcp/.env)",
           "isRequired": true,
           "isSecret": false
         },
