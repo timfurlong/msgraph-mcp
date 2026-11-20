@@ -16,6 +16,7 @@ import (
 func Register(s *mcp.Server, g *graph.Client) {
 	registerUtil(s, g)
 	registerMailRead(s, g)
+	registerMailWrite(s, g)
 }
 
 // add registers one tool. The handler returns a JSON-able value (sent as an
