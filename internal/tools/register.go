@@ -21,6 +21,7 @@ func Register(s *mcp.Server, g *graph.Client) {
 	registerMailActions(s, g)
 	registerMailBatch(s, g)
 	registerMailRules(s, g)
+	registerCalendar(s, g)
 }
 
 // add registers one tool. The handler returns a JSON-able value (sent as an
