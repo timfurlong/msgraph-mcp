@@ -1,16 +1,8 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-.venv/
-venv/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.pyright/
+# Build output
+/msgraph-mcp
+/msgraph-mcp.exe
 dist/
-build/
+*.mcpb
 
 # Env / secrets
 .env
