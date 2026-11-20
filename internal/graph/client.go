@@ -159,7 +159,9 @@ func (c *Client) send(ctx context.Context, method, path string, query url.Values
 		resp, err := c.HTTP.Do(req)
 		if err != nil {
 			lastErr = &APIError{Status: 0, Code: "Unknown", Message: err.Error()}
-			if ctx.Err() != nil || attempt >= attempts {
+			// Graph may have acted on a request whose reply was lost, so only
+			// a GET is safe to resend (a resent sendMail mails people twice).
+			if method != http.MethodGet || ctx.Err() != nil || attempt >= attempts {
 				return nil, lastErr
 			}
 			if err := c.Sleep(ctx, backoff(attempt)); err != nil {

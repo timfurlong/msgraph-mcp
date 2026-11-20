@@ -1,12 +1,16 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
@@ -18,15 +22,37 @@ import (
 type FileCache struct {
 	Path string
 	Now  func() time.Time
+
+	mu        sync.Mutex
+	preferred string // home_account_id with the newest refresh token
+}
+
+func (f *FileCache) preferredAccount() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.preferred
+}
+
+func (f *FileCache) setPreferred(id string) {
+	f.mu.Lock()
+	f.preferred = id
+	f.mu.Unlock()
 }
 
 var _ cache.ExportReplace = (*FileCache)(nil)
 
-// Replace loads the file into MSAL's in-memory cache. A missing, empty or
-// corrupt file leaves the cache empty, which surfaces as "not authenticated".
+// Replace loads the file into MSAL's in-memory cache. A missing or empty
+// file clears it, so deleting the cache signs out every running copy (as it
+// did for the Python version, which reread the file on every call). A file
+// that doesn't parse is most likely another copy's write in progress, so the
+// in-memory cache is kept for that call.
 func (f *FileCache) Replace(_ context.Context, u cache.Unmarshaler, _ cache.ReplaceHints) error {
 	b, err := os.ReadFile(f.Path)
-	if err != nil || len(b) == 0 {
+	if errors.Is(err, fs.ErrNotExist) || (err == nil && len(bytes.TrimSpace(b)) == 0) {
+		f.setPreferred("")
+		return u.Unmarshal([]byte("{}"))
+	}
+	if err != nil {
 		return nil
 	}
 	pruned, err := pruneRefreshTokens(b)
@@ -36,7 +62,27 @@ func (f *FileCache) Replace(_ context.Context, u cache.Unmarshaler, _ cache.Repl
 	if err := u.Unmarshal(pruned); err != nil {
 		return nil
 	}
+	f.setPreferred(newestAccount(pruned))
 	return nil
+}
+
+// newestAccount is the home_account_id of the most recently written refresh
+// token, the account that last signed in or refreshed.
+func newestAccount(b []byte) string {
+	var doc struct {
+		RefreshToken map[string]map[string]any `json:"RefreshToken"`
+	}
+	if json.Unmarshal(b, &doc) != nil {
+		return ""
+	}
+	best, bestTime := "", int64(-1)
+	for _, rt := range doc.RefreshToken {
+		id, _ := rt["home_account_id"].(string)
+		if t := modTime(rt); t > bestTime || (t == bestTime && id < best) {
+			best, bestTime = id, t
+		}
+	}
+	return best
 }
 
 // Export writes MSAL's cache to the file: mode 0600 inside a 0700 directory,

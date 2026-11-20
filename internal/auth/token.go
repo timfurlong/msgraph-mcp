@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"sync"
 
 	msalerrors "github.com/AzureAD/microsoft-authentication-library-for-go/apps/errors"
@@ -30,8 +31,9 @@ var ErrNotAuthenticated error = NotAuthenticatedError{}
 
 // Source hands out access tokens for the configured scopes.
 type Source struct {
-	app public.Client
-	mu  sync.Mutex
+	app   public.Client
+	cache *FileCache
+	mu    sync.Mutex
 }
 
 // NewSource builds the MSAL public client over the token cache file.
@@ -47,9 +49,10 @@ type httpDoer interface {
 }
 
 func newSource(cfg config.Config, hc httpDoer) (*Source, error) {
+	fc := &FileCache{Path: cfg.CachePath}
 	opts := []public.Option{
 		public.WithAuthority(cfg.Authority()),
-		public.WithCache(&FileCache{Path: cfg.CachePath}),
+		public.WithCache(fc),
 	}
 	if hc != nil {
 		opts = append(opts, public.WithHTTPClient(hc))
@@ -58,7 +61,7 @@ func newSource(cfg config.Config, hc httpDoer) (*Source, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Source{app: app}, nil
+	return &Source{app: app, cache: fc}, nil
 }
 
 // Token returns an access token from the cache, refreshing it with the cached
@@ -70,7 +73,8 @@ func (s *Source) Token(ctx context.Context) (string, error) {
 	if err != nil || len(accts) == 0 {
 		return "", ErrNotAuthenticated
 	}
-	res, err := s.app.AcquireTokenSilent(ctx, config.Scopes, public.WithSilentAccount(accts[0]))
+	acct := pickAccount(accts, s.cache.preferredAccount())
+	res, err := s.app.AcquireTokenSilent(ctx, config.Scopes, public.WithSilentAccount(acct))
 	if err != nil {
 		if isNetworkError(err) {
 			return "", err
@@ -90,4 +94,19 @@ func isNetworkError(err error) bool {
 	var urlErr *url.Error
 	var netErr net.Error
 	return errors.As(err, &urlErr) || errors.As(err, &netErr)
+}
+
+// pickAccount chooses the account to act as when the cache holds more than
+// one: the one that signed in or refreshed most recently, else the lowest
+// home account id. MSAL Go returns accounts in map order, so taking the first
+// would switch mailboxes between calls.
+func pickAccount(accts []public.Account, preferred string) public.Account {
+	sorted := append([]public.Account(nil), accts...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].HomeAccountID < sorted[j].HomeAccountID })
+	for _, a := range sorted {
+		if a.HomeAccountID == preferred {
+			return a
+		}
+	}
+	return sorted[0]
 }

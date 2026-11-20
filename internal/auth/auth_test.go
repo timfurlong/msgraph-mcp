@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
+	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 
 	"github.com/timfurlong/msgraph-mcp/internal/config"
 )
@@ -133,8 +134,8 @@ func TestReplaceMissingFileIsEmpty(t *testing.T) {
 	if err := fc.Replace(context.Background(), &u, cacheReplaceHints()); err != nil {
 		t.Fatalf("Replace: %v", err)
 	}
-	if u.got != nil {
-		t.Fatalf("unmarshaled %q from a missing file", u.got)
+	if string(u.got) != "{}" {
+		t.Fatalf("unmarshaled %q from a missing file, want an empty cache", u.got)
 	}
 }
 
@@ -200,3 +201,82 @@ func keys[V any](m map[string]V) []string {
 
 func cacheExportHints() cache.ExportHints   { return cache.ExportHints{} }
 func cacheReplaceHints() cache.ReplaceHints { return cache.ReplaceHints{} }
+
+// oneAccount is a synthesized cache MSAL Go loads with no network: one
+// account, its id token and a refresh token, for client 00000000-....
+const oneAccount = `{
+  "Account": {"uid.utid-login.microsoftonline.com-utid": {"home_account_id": "uid.utid", "environment": "login.microsoftonline.com", "realm": "utid", "local_account_id": "uid", "username": "user@example.com", "authority_type": "MSSTS"}},
+  "RefreshToken": {"uid.utid-login.microsoftonline.com-refreshtoken-00000000-0000-0000-0000-000000000000--": {"home_account_id": "uid.utid", "environment": "login.microsoftonline.com", "credential_type": "RefreshToken", "client_id": "00000000-0000-0000-0000-000000000000", "secret": "s", "last_modification_time": "1000"}},
+  "AccessToken": {}, "IdToken": {},
+  "AppMetadata": {"appmetadata-login.microsoftonline.com-00000000-0000-0000-0000-000000000000": {"client_id": "00000000-0000-0000-0000-000000000000", "environment": "login.microsoftonline.com"}}
+}`
+
+func TestDeletedCacheSignsOutRunningServer(t *testing.T) {
+	for name, gone := range map[string]func(string) error{
+		"deleted": os.Remove,
+		"emptied": func(p string) error { return os.WriteFile(p, nil, 0o600) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "token_cache.bin")
+			if err := os.WriteFile(path, []byte(oneAccount), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			cfg := config.Config{ClientID: "00000000-0000-0000-0000-000000000000", TenantID: "utid", CachePath: path}
+			src, err := newSource(cfg, noNetwork{t})
+			if err != nil {
+				t.Fatal(err)
+			}
+			accts, err := src.app.Accounts(context.Background())
+			if err != nil || len(accts) != 1 {
+				t.Fatalf("before: %d accounts, %v", len(accts), err)
+			}
+			if err := gone(path); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := src.Token(context.Background()); !errors.Is(err, ErrNotAuthenticated) {
+				t.Fatalf("after %s: err = %v, want not authenticated", name, err)
+			}
+			if b, _ := os.ReadFile(path); len(b) > 0 {
+				t.Fatalf("cache rewritten after %s: %s", name, b)
+			}
+		})
+	}
+}
+
+const twoAccounts = `{
+  "Account": {
+    "a": {"home_account_id": "aaa.t", "environment": "login.microsoftonline.com", "realm": "t", "username": "a@example.com"},
+    "b": {"home_account_id": "bbb.t", "environment": "login.microsoftonline.com", "realm": "t", "username": "b@example.com"}
+  },
+  "RefreshToken": {
+    "rt-a": {"home_account_id": "aaa.t", "environment": "login.microsoftonline.com", "client_id": "c", "credential_type": "RefreshToken", "secret": "s", "last_modification_time": "1000"},
+    "rt-b": {"home_account_id": "bbb.t", "environment": "login.microsoftonline.com", "client_id": "c", "credential_type": "RefreshToken", "secret": "s", "last_modification_time": "2000"}
+  }
+}`
+
+func TestReplaceRecordsNewestAccount(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "token_cache.bin")
+	if err := os.WriteFile(path, []byte(twoAccounts), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	fc := &FileCache{Path: path}
+	var u captureUnmarshaler
+	if err := fc.Replace(context.Background(), &u, cacheReplaceHints()); err != nil {
+		t.Fatal(err)
+	}
+	if got := fc.preferredAccount(); got != "bbb.t" {
+		t.Fatalf("preferred = %q, want bbb.t (newest refresh token)", got)
+	}
+}
+
+func TestPickAccountIsDeterministic(t *testing.T) {
+	accts := []public.Account{{HomeAccountID: "ccc.t"}, {HomeAccountID: "aaa.t"}, {HomeAccountID: "bbb.t"}}
+	if got := pickAccount(accts, "bbb.t"); got.HomeAccountID != "bbb.t" {
+		t.Fatalf("got %s, want the preferred account", got.HomeAccountID)
+	}
+	for i := 0; i < 5; i++ {
+		if got := pickAccount([]public.Account{accts[i%3], accts[(i+1)%3], accts[(i+2)%3]}, ""); got.HomeAccountID != "aaa.t" {
+			t.Fatalf("got %s, want aaa.t whatever the order", got.HomeAccountID)
+		}
+	}
+}
