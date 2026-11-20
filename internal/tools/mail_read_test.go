@@ -13,7 +13,6 @@ import (
 	"github.com/timfurlong/msgraph-mcp/internal/graphtest"
 )
 
-
 func oneMessage(graphtest.Request) graphtest.Response {
 	return jsonOK(M{"value": []any{M{"id": "m1", "subject": "Hi", "isRead": false}}})
 }
