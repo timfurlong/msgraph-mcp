@@ -24,7 +24,9 @@ func batchFake(t *testing.T, script func(call int, reqs []any) []any) (*graph.Cl
 	})
 }
 
-func ok(id any) map[string]any { return map[string]any{"id": id, "status": 200, "body": map[string]any{"id": id}} }
+func ok(id any) map[string]any {
+	return map[string]any{"id": id, "status": 200, "body": map[string]any{"id": id}}
+}
 
 func echoOK(_ int, reqs []any) []any {
 	var out []any
