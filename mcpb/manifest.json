@@ -1,0 +1,55 @@
+{
+  "manifest_version": "0.3",
+  "name": "msgraph-mcp",
+  "display_name": "MSGraph MCP",
+  "version": "0.0.0",
+  "description": "Microsoft Graph: Outlook mail and calendar, plus read-only Microsoft Teams",
+  "long_description": "Acts as the signed-in user with delegated permissions. Sign in once with `msgraph-mcp login` before first use; see the README for the Entra app registration it needs.",
+  "author": {
+    "name": "Tim Furlong",
+    "url": "https://github.com/timfurlong"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/timfurlong/msgraph-mcp"
+  },
+  "homepage": "https://github.com/timfurlong/msgraph-mcp",
+  "license": "MIT",
+  "server": {
+    "type": "binary",
+    "entry_point": "server/msgraph-mcp-darwin",
+    "mcp_config": {
+      "command": "${__dirname}/server/msgraph-mcp-darwin",
+      "args": [],
+      "env": {
+        "MSGRAPH_MCP_CLIENT_ID": "${user_config.client_id}",
+        "MSGRAPH_MCP_TENANT_ID": "${user_config.tenant_id}"
+      },
+      "platform_overrides": {
+        "win32": {
+          "command": "${__dirname}/server/msgraph-mcp.exe"
+        },
+        "linux": {
+          "command": "${__dirname}/server/msgraph-mcp-linux"
+        }
+      }
+    }
+  },
+  "user_config": {
+    "client_id": {
+      "type": "string",
+      "title": "Client ID",
+      "description": "Client ID of your Entra (Azure AD) app registration",
+      "required": true
+    },
+    "tenant_id": {
+      "type": "string",
+      "title": "Tenant ID",
+      "description": "Entra tenant ID (or common / organizations / consumers)",
+      "required": true
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"]
+  }
+}
