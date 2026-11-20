@@ -1,0 +1,19 @@
+{
+  "id": "AAMkAGI-msg-id",
+  "subject": "Hello",
+  "from": {"emailAddress": {"name": "Alice", "address": "alice@example.com"}},
+  "toRecipients": [{"emailAddress": {"name": "Bob", "address": "bob@example.com"}}],
+  "ccRecipients": [],
+  "receivedDateTime": "2026-05-19T14:00:00Z",
+  "sentDateTime": "2026-05-19T13:59:00Z",
+  "bodyPreview": "Hello there",
+  "body": {"contentType": "text", "content": "Hello there\nFull body."},
+  "isRead": false,
+  "isDraft": false,
+  "hasAttachments": false,
+  "importance": "normal",
+  "flag": {"flagStatus": "notFlagged"},
+  "categories": [],
+  "conversationId": "AAQk-conv",
+  "webLink": "https://outlook.office.com/owa/?ItemID=foo"
+}
