@@ -15,15 +15,8 @@ import (
 // Register adds every tool to s, in the Python server's order.
 func Register(s *mcp.Server, g *graph.Client) {
 	registerUtil(s, g)
-	for _, register := range moduleRegistrars {
-		register(s, g)
-	}
+	registerMailRead(s, g)
 }
-
-// moduleRegistrars lists each tool module's register function in order:
-// mail_read, mail_write, mail_folders, mail_actions, mail_batch,
-// mail_rules, calendar, teams_chats, teams_channels, teams_content.
-var moduleRegistrars []func(*mcp.Server, *graph.Client)
 
 // add registers one tool. The handler returns a JSON-able value (sent as an
 // indented JSON text block) or a ready *mcp.CallToolResult. A returned error
