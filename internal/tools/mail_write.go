@@ -223,33 +223,7 @@ func registerMailWrite(s *mcp.Server, g *graph.Client) {
 	})
 
 	add(s, "update_message", func(ctx context.Context, in updateMessageIn) (any, error) {
-		patch := M{}
-		if in.IsRead != nil {
-			patch["isRead"] = *in.IsRead
-		}
-		if in.Flag != nil {
-			if err := oneOf("flag", *in.Flag, "notFlagged", "flagged", "complete"); err != nil {
-				return nil, err
-			}
-			patch["flag"] = M{"flagStatus": *in.Flag}
-		}
-		if in.Importance != nil {
-			if err := oneOf("importance", *in.Importance, "low", "normal", "high"); err != nil {
-				return nil, err
-			}
-			patch["importance"] = *in.Importance
-		}
-		if in.Categories != nil {
-			patch["categories"] = in.Categories
-		}
-		if in.ParentFolderID != nil {
-			patch["parentFolderId"] = *in.ParentFolderID
-		}
-		updated, err := g.Do(ctx, "PATCH", messagePath(in.Mailbox, in.MessageID), nil, patch)
-		if err != nil {
-			return nil, err
-		}
-		return trim.Message(updated, false, in.IncludeRaw), nil
+		return updateMessage(ctx, g, in)
 	})
 
 	add(s, "delete_message", func(ctx context.Context, in messageIDIn) (any, error) {
@@ -258,4 +232,34 @@ func registerMailWrite(s *mcp.Server, g *graph.Client) {
 		}
 		return M{"status": "deleted"}, nil
 	})
+}
+
+func updateMessage(ctx context.Context, g *graph.Client, in updateMessageIn) (any, error) {
+	patch := M{}
+	if in.IsRead != nil {
+		patch["isRead"] = *in.IsRead
+	}
+	if in.Flag != nil {
+		if err := oneOf("flag", *in.Flag, "notFlagged", "flagged", "complete"); err != nil {
+			return nil, err
+		}
+		patch["flag"] = M{"flagStatus": *in.Flag}
+	}
+	if in.Importance != nil {
+		if err := oneOf("importance", *in.Importance, "low", "normal", "high"); err != nil {
+			return nil, err
+		}
+		patch["importance"] = *in.Importance
+	}
+	if in.Categories != nil {
+		patch["categories"] = in.Categories
+	}
+	if in.ParentFolderID != nil {
+		patch["parentFolderId"] = *in.ParentFolderID
+	}
+	updated, err := g.Do(ctx, "PATCH", messagePath(in.Mailbox, in.MessageID), nil, patch)
+	if err != nil {
+		return nil, err
+	}
+	return trim.Message(updated, false, in.IncludeRaw), nil
 }
