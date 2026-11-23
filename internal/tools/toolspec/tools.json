@@ -172,7 +172,7 @@
   },
   {
     "name": "list_attachments",
-    "description": "List attachments on a message (metadata only — no content).",
+    "description": "List attachments on a message (metadata only — no content).\n\nEach item has a `kind`: \"file\" (a file's bytes), \"item\" (an attached\nOutlook message, event or contact, such as a forwarded email or a\nwrapped invite) or \"reference\" (a link to a OneDrive/SharePoint file).\ndownload_attachment fetches \"file\" and \"item\" attachments.\n",
     "inputSchema": {
       "properties": {
         "message_id": {
@@ -206,7 +206,7 @@
   },
   {
     "name": "download_attachment",
-    "description": "Download a single attachment.\n\nArgs:\n    save_path: Write the bytes to this file path (or into this existing\n        directory, using the attachment's name) instead of returning\n        content. In a directory, the name is reduced to\n        its base name, so it can't point outside that directory. Returns {\"path\", \"name\", \"content_type\", \"size_bytes\"}.\n\nReturns:\n    - Image attachments (PNG/JPEG/GIF/WebP, no save_path): metadata plus\n      the image itself as a native MCP image block, viewable directly.\n    - With save_path: {\"path\", \"name\", \"content_type\", \"size_bytes\"}.\n    - Otherwise: {name, content_type, size_bytes, content_base64}.\n",
+    "description": "Download a single attachment.\n\nFile attachments come back as their bytes. Item attachments (an\nattached Outlook message, event or contact) come back as the item's\nraw content: MIME (.eml, message/rfc822) for a message, iCalendar\n(.ics, text/calendar) for an event, vCard (.vcf, text/vcard) for a\ncontact. Reference attachments (links to cloud files) have no content\nand return an error naming the kind, as does any other kind.\n\nArgs:\n    save_path: Write the bytes to this file path (or into this existing\n        directory, using the attachment's name) instead of returning\n        content. In a directory, the name is reduced to\n        its base name, so it can't point outside that directory. An item\n        attachment's file gets a .eml/.ics/.vcf extension. Returns\n        {\"path\", \"name\", \"content_type\", \"size_bytes\"}.\n\nReturns:\n    - Image attachments (PNG/JPEG/GIF/WebP, no save_path): metadata plus\n      the image itself as a native MCP image block, viewable directly.\n    - With save_path: {\"path\", \"name\", \"content_type\", \"size_bytes\"}.\n    - Item attachments: {name, kind: \"item\", item_type, content_type,\n      size_bytes, content_text, item}. item holds the attached item's key\n      fields (subject, from, to, cc, sent, received, body for a message;\n      the event fields for an event). content_text is the raw MIME or\n      iCalendar text (content_base64 instead if it isn't UTF-8).\n    - Other files: {name, content_type, size_bytes, content_base64}.\n",
     "inputSchema": {
       "properties": {
         "message_id": {
