@@ -1,10 +1,12 @@
 package tools
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -157,34 +159,108 @@ func registerMailRead(s *mcp.Server, g *graph.Client) {
 	})
 
 	add(s, "download_attachment", func(ctx context.Context, in downloadAttachmentIn) (any, error) {
-		att, err := g.Do(ctx, "GET", messagePath(in.Mailbox, in.MessageID)+"/attachments/"+seg(in.AttachmentID), nil, nil)
+		path := messagePath(in.Mailbox, in.MessageID) + "/attachments/" + seg(in.AttachmentID)
+		// The $expand fills in an item attachment's nested item; file
+		// attachments ignore it and still carry contentBytes.
+		att, err := g.Do(ctx, "GET", path, url.Values{"$expand": {"microsoft.graph.itemattachment/item"}}, nil)
 		if err != nil {
 			return nil, err
 		}
-		encoded, hasBytes := att["contentBytes"].(string)
-		if hasBytes {
-			data, err := base64.StdEncoding.DecodeString(encoded)
-			if err != nil {
-				return nil, graph.Invalid("attachment content is not valid base64: %v", err)
-			}
-			name, _ := att["name"].(string)
-			ct, _ := att["contentType"].(string)
-			if in.SavePath != nil {
-				defaultName := name
-				if defaultName == "" {
-					defaultName = "attachment-" + in.AttachmentID + extFor(ct)
-				}
-				path, err := writeBytes(*in.SavePath, data, defaultName)
-				if err != nil {
-					return nil, err
-				}
-				return M{"path": path, "name": att["name"], "content_type": att["contentType"], "size_bytes": len(data)}, nil
-			}
-			if isImage(ct) {
-				return imageResult(M{"name": att["name"], "content_type": ct, "size_bytes": len(data)}, data, ct), nil
-			}
+		switch kind := trim.AttachmentKind(att); kind {
+		case "file":
+			return downloadFile(att, in)
+		case "item":
+			return downloadItem(ctx, g, path, att, in)
+		case "reference":
+			return nil, graph.Invalid("attachment %q is a referenceAttachment: a link to a file in OneDrive or SharePoint, not content stored in the message, so there is nothing to download. Open it from the message in Outlook.", att["name"])
+		default:
+			return nil, graph.Invalid("attachment %q is a %s, which download_attachment can't fetch (it handles fileAttachment and itemAttachment).", att["name"], kind)
 		}
-		// Item and reference attachments carry no bytes.
-		return trim.AttachmentDownload(att, in.IncludeRaw), nil
 	})
+}
+
+func downloadFile(att M, in downloadAttachmentIn) (any, error) {
+	encoded, ok := att["contentBytes"].(string)
+	if !ok {
+		return nil, graph.Invalid("fileAttachment %q came back without contentBytes, so there is nothing to download.", att["name"])
+	}
+	data, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, graph.Invalid("attachment content is not valid base64: %v", err)
+	}
+	name, _ := att["name"].(string)
+	ct, _ := att["contentType"].(string)
+	if in.SavePath != nil {
+		defaultName := name
+		if defaultName == "" {
+			defaultName = "attachment-" + in.AttachmentID + extFor(ct)
+		}
+		path, err := writeBytes(*in.SavePath, data, defaultName)
+		if err != nil {
+			return nil, err
+		}
+		return M{"path": path, "name": att["name"], "content_type": att["contentType"], "size_bytes": len(data)}, nil
+	}
+	if isImage(ct) {
+		return imageResult(M{"name": att["name"], "content_type": ct, "size_bytes": len(data)}, data, ct), nil
+	}
+	return trim.AttachmentDownload(att, in.IncludeRaw), nil
+}
+
+// downloadItem fetches an attached Outlook item's raw content from /$value:
+// MIME for a message, iCalendar for an event, vCard for a contact.
+func downloadItem(ctx context.Context, g *graph.Client, path string, att M, in downloadAttachmentIn) (any, error) {
+	data, err := g.GetBytes(ctx, path+"/$value")
+	if err != nil {
+		return nil, err
+	}
+	ct, ext := itemFormat(data)
+	if in.SavePath != nil {
+		name, _ := att["name"].(string)
+		// Subjects often hold slashes ("RE: Q3 // plan"); keep the words.
+		fname := strings.NewReplacer("/", "-", "\\", "-").Replace(name)
+		if strings.TrimSpace(fname) == "" {
+			fname = "attachment-" + in.AttachmentID
+		}
+		if !strings.HasSuffix(strings.ToLower(fname), ext) {
+			fname += ext
+		}
+		p, err := writeBytes(*in.SavePath, data, fname)
+		if err != nil {
+			return nil, err
+		}
+		return M{"path": p, "name": att["name"], "content_type": ct, "size_bytes": len(data)}, nil
+	}
+	item, _ := att["item"].(M)
+	out := M{
+		"name":         att["name"],
+		"kind":         "item",
+		"item_type":    trim.ItemType(item),
+		"content_type": ct,
+		"size_bytes":   len(data),
+		"item":         trim.AttachedItem(item),
+	}
+	if utf8.Valid(data) {
+		out["content_text"] = string(data)
+	} else {
+		out["content_base64"] = base64.StdEncoding.EncodeToString(data)
+	}
+	if in.IncludeRaw {
+		out["raw"] = att
+	}
+	return out, nil
+}
+
+// itemFormat names the content type and file extension of an item
+// attachment's raw content, sniffed from the bytes since /$value doesn't
+// say.
+func itemFormat(data []byte) (contentType, ext string) {
+	head := strings.ToUpper(string(bytes.TrimLeft(data[:min(len(data), 64)], " \t\r\n\ufeff")))
+	switch {
+	case strings.HasPrefix(head, "BEGIN:VCALENDAR"):
+		return "text/calendar", ".ics"
+	case strings.HasPrefix(head, "BEGIN:VCARD"):
+		return "text/vcard", ".vcf"
+	}
+	return "message/rfc822", ".eml"
 }

@@ -170,8 +170,33 @@ func TestFolder(t *testing.T) {
 }
 
 func TestAttachmentItem(t *testing.T) {
-	equalJSON(t, AttachmentItem(parse(t, `{"id":"a1","name":"doc.pdf","contentType":"application/pdf","size":12345,"isInline":false}`), false),
-		`{"id":"a1","name":"doc.pdf","content_type":"application/pdf","size_bytes":12345,"is_inline":false}`)
+	equalJSON(t, AttachmentItem(parse(t, `{"@odata.type":"#microsoft.graph.fileAttachment","id":"a1","name":"doc.pdf","contentType":"application/pdf","size":12345,"isInline":false}`), false),
+		`{"id":"a1","name":"doc.pdf","content_type":"application/pdf","size_bytes":12345,"is_inline":false,"kind":"file"}`)
+}
+
+func TestAttachedItemMessage(t *testing.T) {
+	raw := parse(t, `{"@odata.type":"#microsoft.graph.eventMessage","subject":"Invite","sender":{"emailAddress":{"name":"A","address":"a@example.com"}},"meetingMessageType":"meetingRequest","body":{"contentType":"text","content":"hi"}}`)
+	got := AttachedItem(raw).(M)
+	if got["subject"] != "Invite" || got["from"].(M)["address"] != "a@example.com" || got["meeting_message_type"] != "meetingRequest" || got["body"] != "hi" {
+		t.Fatalf("got %v", got)
+	}
+	if ItemType(raw) != "eventMessage" {
+		t.Fatalf("type %v", ItemType(raw))
+	}
+}
+
+func TestAttachedItemContact(t *testing.T) {
+	raw := parse(t, `{"@odata.type":"#microsoft.graph.contact","displayName":"Bob","emailAddresses":[{"name":"Bob","address":"bob@example.com"}],"companyName":"Example"}`)
+	got := AttachedItem(raw).(M)
+	if got["display_name"] != "Bob" || got["email_addresses"].([]any)[0].(M)["address"] != "bob@example.com" {
+		t.Fatalf("got %v", got)
+	}
+}
+
+func TestAttachedItemMissing(t *testing.T) {
+	if AttachedItem(nil) != nil || ItemType(nil) != nil {
+		t.Fatal("want nil for a missing item")
+	}
 }
 
 func TestAttachmentDownload(t *testing.T) {
